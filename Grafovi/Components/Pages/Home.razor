@@ -3,7 +3,7 @@
 @using Grafovi.Models
 @inject IJSRuntime JS
 
-<PageTitle>Graf Editor</PageTitle>
+<PageTitle>Grafovi</PageTitle>
 
 <div class="graph-container">
     <!-- Levi Panel -->
@@ -18,14 +18,23 @@
 
     <!-- Desni Panel -->
     <div class="control-panel">
-        <!-- Input -->
+        <!-- Unos -->
         <div class="panel-section">
             <h3>Unos Grafa</h3>
             <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
             
-            <div class="input-group">
-                <label>Težinski graf</label>
-                <input type="checkbox" @bind="tezinskiGraf" class="toggle-switch" />
+            <div class="input-group-inline">
+                <label>
+                    <span>Težinski graf</span>
+                    <input type="checkbox" @bind="tezinskiGraf" class="toggle-switch" />
+                </label>
+            </div>
+
+            <div class="input-group-inline">
+                <label>
+                    <span>Usmeren graf</span>
+                    <input type="checkbox" @bind="usmerenGraf" class="toggle-switch" />
+                </label>
             </div>
 
             <div class="input-group">
@@ -33,11 +42,19 @@
                 <input type="text" @bind="granaInput" placeholder="AB" class="input-field" />
             </div>
 
+            @if (tezinskiGraf)
+            {
+                <div class="input-group">
+                    <label>Težina</label>
+                    <input type="number" @bind="tezinaInput" placeholder="1.0" class="input-field" step="0.1" />
+                </div>
+            }
+
             <div class="button-group">
                 <button @onclick="DodajGranu" class="btn btn-primary">
                     <span>+</span> Dodaj granu
                 </button>
-                <button @onclick="ObrisiSve" class="btn btn-danger">
+                <button @onclick="ObrisiSve" class="btn btn-delete">
                     <span>🗑</span>
                 </button>
             </div>
@@ -62,11 +79,38 @@
             <div class="info-details">
                 <div class="info-item">
                     <strong>Čvorovi:</strong>
-                    <p>@(graf.cvorovi.Count > 0 ? string.Join(", ", graf.cvorovi.Select(c => c.naziv)) : "Nema čvorova")</p>
+                    @if (graf.cvorovi.Count > 0)
+                    {
+                        @foreach (var cvor in graf.cvorovi)
+                        {
+                            <span class ="item-tag-cvor">
+                                @cvor.naziv
+                                <button @onclick = "() => ObrisiCvor(cvor)" class="delete-btn">x</button>
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <p>Nema čvorova</p>
+                    }
                 </div>
                 <div class="info-item">
                     <strong>Grane:</strong>
-                    <p>@(graf.grane.Count > 0 ? string.Join(", ", graf.grane.Select(g => $"{g.pocetniCvor.naziv}{g.krajnjiCvor.naziv}")) : "Nema grana")</p>
+                    @if (graf.grane.Count > 0)
+                    {
+                        @foreach (var grana in graf.grane)
+                        {
+                            <span class ="item-tag-grana">
+                                @grana.pocetniCvor.naziv - @grana.krajnjiCvor.naziv
+                                <button @onclick = "() => ObrisiGranu(grana)" class="delete-btn">x</button>
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <p>Nema grana</p>
+                    }
+                    
                 </div>
             </div>
 
@@ -76,9 +120,10 @@
                     <button @onclick="ExportujGraf" class="btn btn-secondary">
                         <span>⬇</span> Exportuj
                     </button>
-                    <button @onclick="ImportujGraf" class="btn btn-secondary">
+                    <InputFile OnChange="ImportujGraf" id="fileInput" style="display: none;" accept=".json" />
+                    <label for="fileInput" class="btn btn-secondary" style="cursor: pointer;">
                         <span>⬆</span> Importuj
-                    </button>
+                    </label>
                 </div>
             </div>
         </div>
@@ -88,53 +133,46 @@
 @code {
     Graf graf = new Graf();
     bool tezinskiGraf = false;
+    bool usmerenGraf = false;
     string granaInput = "";
+    double tezinaInput = 1.0;
 
     protected override void OnInitialized()
     {
         // Prazan graf na pocetku
     }
 
-    void DodajGranu()
+    async void DodajGranu()
     {
-        if (string.IsNullOrWhiteSpace(granaInput) || granaInput.Length < 2)
+        if (string.IsNullOrWhiteSpace(granaInput) || granaInput.Length < 2 || granaInput.Length > 2)
+        {
+            granaInput = "";
             return;
+        }
 
         string pocetniNaziv = granaInput[0].ToString().ToUpper();
         string krajnjiNaziv = granaInput[1].ToString().ToUpper();
-
-        // Pronađi ili kreiraj čvorove
-        var pocetniCvor = graf.cvorovi.FirstOrDefault(c => c.naziv == pocetniNaziv);
-        if (pocetniCvor == null)
-        {
-            pocetniCvor = new GrafCvor(graf.cvorovi.Count + 1, pocetniNaziv);
-            graf.cvorovi.Add(pocetniCvor);
-        }
-
-        var krajnjiCvor = graf.cvorovi.FirstOrDefault(c => c.naziv == krajnjiNaziv);
-        if (krajnjiCvor == null)
-        {
-            krajnjiCvor = new GrafCvor(graf.cvorovi.Count + 1, krajnjiNaziv);
-            graf.cvorovi.Add(krajnjiCvor);
-        }
-
-        // Dodaj granu
-        graf.grane.Add(new GrafGrana
-        {
-            ID = graf.grane.Count + 1,
-            pocetniCvor = pocetniCvor,
-            krajnjiCvor = krajnjiCvor,
-            tezina = 1.0,
-            usmerena = false
-        });
+        
+        graf.Dodaj(pocetniNaziv, krajnjiNaziv, tezinskiGraf ? tezinaInput : Convert.ToDouble(null), usmerenGraf);
 
         granaInput = "";
+        tezinaInput = 1.0;
     }
 
     void ObrisiSve()
     {
         graf.cvorovi.Clear();
         graf.grane.Clear();
+    }
+
+    void ObrisiCvor(GrafCvor cvor)
+    {
+        graf.ObrisiCvor(cvor);
+    }
+
+    void ObrisiGranu(GrafGrana grana)
+    {
+        graf.ObrisiGranu(grana);
     }
 
     async Task ExportujGraf()
@@ -150,13 +188,34 @@
         }
         catch (Exception)
         {
-            // Handle error
+            await JS.InvokeVoidAsync("alert", "Došlo je do greške prilikom eksportovanja grafa.");
         }
     }
 
-    async Task ImportujGraf()
+    async Task ImportujGraf(InputFileChangeEventArgs e)
     {
-        // TODO: Implementirati učitavanje fajla
+        try
+        {
+            var file = e.File;
+            if (file == null)
+                return;
+
+            var stream = file.OpenReadStream();
+            var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+
+            var importovaniGraf = System.Text.Json.JsonSerializer.Deserialize<Graf>(json);
+
+            if (importovaniGraf != null)
+            {
+                graf = importovaniGraf;
+                await JS.InvokeVoidAsync("alert", "Graf je uspešno importovan!");
+            }
+        }
+        catch (Exception)
+        {
+            await JS.InvokeVoidAsync("alert", "Došlo je do greške prilikom importovanja grafa.");
+        }
         await Task.CompletedTask;
     }
 }

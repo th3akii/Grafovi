@@ -1,0 +1,235 @@
+.graph-container {
+    display: flex;
+    height: calc(100vh - 60px);
+    gap: 0;
+    background: #f5f7fa;
+}
+
+/* Levi Panel */
+.graph-panel {
+    flex: 1;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    margin: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.graph-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.graph-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.graph-canvas {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafbfc;
+    border-radius: 0 0 12px 12px;
+}
+
+.graph-placeholder {
+    color: #9ca3af;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Desni Panel*/
+.control-panel {
+    width: 400px;
+    background: white;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 20px 20px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.panel-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+}
+
+.panel-section h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.section-description {
+    margin: 0 0 16px 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* Input Groups */
+.input-group {
+    margin-bottom: 16px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.input-field {
+    width: calc(100% - 24px);
+    margin: 0 auto;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.toggle-switch {
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+}
+
+/* Buttons */
+.button-group {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    flex: 1;
+    background: #000;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1f2937;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    padding: 10px 14px;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-secondary {
+    flex: 1;
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+    background: #f9fafb;
+}
+
+/* Info Cards */
+.info-cards {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.info-card {
+    flex: 1;
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.info-card-blue {
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+}
+
+.info-card-green {
+    background: #f0fdf4;
+    border: 1px solid #dcfce7;
+}
+
+.info-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.info-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Info Details */
+.info-details {
+    margin-bottom: 16px;
+}
+
+.info-item {
+    margin-bottom: 12px;
+}
+
+.info-item strong {
+    display: block;
+    font-size: 14px;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.info-item p {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* Export Section */
+.export-section {
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.export-section strong {
+    display: block;
+    font-size: 14px;
+    color: #1f2937;
+    margin-bottom: 8px;
+}

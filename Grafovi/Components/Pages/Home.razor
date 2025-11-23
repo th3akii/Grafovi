@@ -1,7 +1,162 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using Grafovi.Models
+@inject IJSRuntime JS
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Graf Editor</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="graph-container">
+    <!-- Levi Panel -->
+    <div class="graph-panel">
+        <div class="graph-header">
+            <h2>Graf</h2>
+        </div>
+        <div id="graphCanvas" class="graph-canvas">
+            <p class="graph-placeholder">Unesite grane da biste kreirali graf</p>
+        </div>
+    </div>
 
-Welcome to your new app.
+    <!-- Desni Panel -->
+    <div class="control-panel">
+        <!-- Input -->
+        <div class="panel-section">
+            <h3>Unos Grafa</h3>
+            <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
+            
+            <div class="input-group">
+                <label>Težinski graf</label>
+                <input type="checkbox" @bind="tezinskiGraf" class="toggle-switch" />
+            </div>
+
+            <div class="input-group">
+                <label>Grana (npr. AB, CD)</label>
+                <input type="text" @bind="granaInput" placeholder="AB" class="input-field" />
+            </div>
+
+            <div class="button-group">
+                <button @onclick="DodajGranu" class="btn btn-primary">
+                    <span>+</span> Dodaj granu
+                </button>
+                <button @onclick="ObrisiSve" class="btn btn-danger">
+                    <span>🗑</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="panel-section">
+            <h3>Informacije o Grafu</h3>
+            <p class="section-description">Pregled čvorova i grana</p>
+            
+            <div class="info-cards">
+                <div class="info-card info-card-blue">
+                    <div class="info-label">Broj čvorova</div>
+                    <div class="info-value">@graf.cvorovi.Count</div>
+                </div>
+                <div class="info-card info-card-green">
+                    <div class="info-label">Broj grana</div>
+                    <div class="info-value">@graf.grane.Count</div>
+                </div>
+            </div>
+
+            <div class="info-details">
+                <div class="info-item">
+                    <strong>Čvorovi:</strong>
+                    <p>@(graf.cvorovi.Count > 0 ? string.Join(", ", graf.cvorovi.Select(c => c.naziv)) : "Nema čvorova")</p>
+                </div>
+                <div class="info-item">
+                    <strong>Grane:</strong>
+                    <p>@(graf.grane.Count > 0 ? string.Join(", ", graf.grane.Select(g => $"{g.pocetniCvor.naziv}{g.krajnjiCvor.naziv}")) : "Nema grana")</p>
+                </div>
+            </div>
+
+            <div class="export-section">
+                <strong>Uvoz/izvoz:</strong>
+                <div class="button-group">
+                    <button @onclick="ExportujGraf" class="btn btn-secondary">
+                        <span>⬇</span> Exportuj
+                    </button>
+                    <button @onclick="ImportujGraf" class="btn btn-secondary">
+                        <span>⬆</span> Importuj
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    Graf graf = new Graf();
+    bool tezinskiGraf = false;
+    string granaInput = "";
+
+    protected override void OnInitialized()
+    {
+        // Prazan graf na pocetku
+    }
+
+    void DodajGranu()
+    {
+        if (string.IsNullOrWhiteSpace(granaInput) || granaInput.Length < 2)
+            return;
+
+        string pocetniNaziv = granaInput[0].ToString().ToUpper();
+        string krajnjiNaziv = granaInput[1].ToString().ToUpper();
+
+        // Pronađi ili kreiraj čvorove
+        var pocetniCvor = graf.cvorovi.FirstOrDefault(c => c.naziv == pocetniNaziv);
+        if (pocetniCvor == null)
+        {
+            pocetniCvor = new GrafCvor(graf.cvorovi.Count + 1, pocetniNaziv);
+            graf.cvorovi.Add(pocetniCvor);
+        }
+
+        var krajnjiCvor = graf.cvorovi.FirstOrDefault(c => c.naziv == krajnjiNaziv);
+        if (krajnjiCvor == null)
+        {
+            krajnjiCvor = new GrafCvor(graf.cvorovi.Count + 1, krajnjiNaziv);
+            graf.cvorovi.Add(krajnjiCvor);
+        }
+
+        // Dodaj granu
+        graf.grane.Add(new GrafGrana
+        {
+            ID = graf.grane.Count + 1,
+            pocetniCvor = pocetniCvor,
+            krajnjiCvor = krajnjiCvor,
+            tezina = 1.0,
+            usmerena = false
+        });
+
+        granaInput = "";
+    }
+
+    void ObrisiSve()
+    {
+        graf.cvorovi.Clear();
+        graf.grane.Clear();
+    }
+
+    async Task ExportujGraf()
+    {
+        try
+        {
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(graf, options);
+            await JS.InvokeVoidAsync("downloadFile", "graf.json", json);
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    async Task ImportujGraf()
+    {
+        // TODO: Implementirati učitavanje fajla
+        await Task.CompletedTask;
+    }
+}

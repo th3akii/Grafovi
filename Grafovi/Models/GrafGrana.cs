@@ -1,5 +1,3 @@
-using System.Diagnostics.Eventing.Reader;
-
 namespace Grafovi.Models
 {
     public class GrafGrana

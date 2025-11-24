@@ -1,6 +1,7 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 @using Grafovi.Models
+@using System.Threading.Tasks
 @inject IJSRuntime JS
 
 <PageTitle>Grafovi</PageTitle>
@@ -17,115 +18,185 @@
     </div>
 
     <!-- Desni Panel -->
-    <div class="control-panel">
-        <!-- Unos -->
-        <div class="panel-section">
-            <h3>Unos Grafa</h3>
-            <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
-            
-            <div class="input-group-inline">
-                <label>
-                    <span>Težinski graf</span>
-                    <input type="checkbox" @bind="tezinskiGraf" class="toggle-switch" />
-                </label>
-            </div>
-
-            <div class="input-group-inline">
-                <label>
-                    <span>Usmeren graf</span>
-                    <input type="checkbox" @bind="usmerenGraf" class="toggle-switch" />
-                </label>
-            </div>
-
-            <div class="input-group">
-                <label>Grana (npr. AB, CD)</label>
-                <input type="text" @bind="granaInput" placeholder="AB" class="input-field" />
-            </div>
-
-            @if (tezinskiGraf)
-            {
-                <div class="input-group">
-                    <label>Težina</label>
-                    <input type="number" @bind="tezinaInput" placeholder="1.0" class="input-field" step="0.1" />
-                </div>
-            }
-
-            <div class="button-group">
-                <button @onclick="DodajGranu" class="btn btn-primary">
-                    <span>+</span> Dodaj granu
-                </button>
-                <button @onclick="ObrisiSve" class="btn btn-delete">
-                    <span>🗑</span>
-                </button>
-            </div>
+    <div class="control-panel" style="@(activeTab == "algoritmi" ? "min-height: 350px;" : "")">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab @(activeTab == "unos" ? "active" : "")" @onclick='() => activeTab = "unos"'>
+                Unos
+            </button>
+            <button class="tab @(activeTab == "informacije" ? "active" : "")" @onclick='() => activeTab = "informacije"'>
+                Informacije
+            </button>
+            <button class="tab @(activeTab == "algoritmi" ? "active" : "")" @onclick='() => activeTab = "algoritmi"'>
+                Algoritmi
+            </button>
         </div>
 
-        <!-- Info -->
-        <div class="panel-section">
-            <h3>Informacije o Grafu</h3>
-            <p class="section-description">Pregled čvorova i grana</p>
-            
-            <div class="info-cards">
-                <div class="info-card info-card-blue">
-                    <div class="info-label">Broj čvorova</div>
-                    <div class="info-value">@graf.cvorovi.Count</div>
-                </div>
-                <div class="info-card info-card-green">
-                    <div class="info-label">Broj grana</div>
-                    <div class="info-value">@graf.grane.Count</div>
-                </div>
-            </div>
-
-            <div class="info-details">
-                <div class="info-item">
-                    <strong>Čvorovi:</strong>
-                    @if (graf.cvorovi.Count > 0)
-                    {
-                        @foreach (var cvor in graf.cvorovi)
-                        {
-                            <span class ="item-tag-cvor">
-                                @cvor.naziv
-                                <button @onclick = "() => ObrisiCvor(cvor)" class="delete-btn">x</button>
-                            </span>
-                        }
-                    }
-                    else
-                    {
-                        <p>Nema čvorova</p>
-                    }
-                </div>
-                <div class="info-item">
-                    <strong>Grane:</strong>
-                    @if (graf.grane.Count > 0)
-                    {
-                        @foreach (var grana in graf.grane)
-                        {
-                            <span class ="item-tag-grana">
-                                @grana.pocetniCvor.naziv - @grana.krajnjiCvor.naziv
-                                <button @onclick = "() => ObrisiGranu(grana)" class="delete-btn">x</button>
-                            </span>
-                        }
-                    }
-                    else
-                    {
-                        <p>Nema grana</p>
-                    }
+        <!-- Tabovi -->
+        <div class="tab-content">
+            @if (activeTab == "unos")
+            {
+                <!-- Unos -->
+                <div class="panel-section">
+                    <h3>Unos Grafa</h3>
+                    <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
                     
-                </div>
-            </div>
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Težinski graf</span>
+                            <input type="checkbox" @bind="tezinskiGraf" class="toggle-switch" />
+                        </label>
+                    </div>
 
-            <div class="export-section">
-                <strong>Uvoz/izvoz:</strong>
-                <div class="button-group">
-                    <button @onclick="ExportujGraf" class="btn btn-secondary">
-                        <span>⬇</span> Exportuj
-                    </button>
-                    <InputFile OnChange="ImportujGraf" id="fileInput" style="display: none;" accept=".json" />
-                    <label for="fileInput" class="btn btn-secondary" style="cursor: pointer;">
-                        <span>⬆</span> Importuj
-                    </label>
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Usmeren graf</span>
+                            <input disabled="@(graf.grane.Count > 0)" type="checkbox" @bind="usmerenGraf" class="toggle-switch" />
+                        </label>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Grana (npr. AB, CD)</label>
+                        <input type="text" @bind="granaInput" placeholder="AB" class="input-field" />
+                    </div>
+
+                    @if (tezinskiGraf)
+                    {
+                        <div class="input-group">
+                            <label>Težina</label>
+                            <input type="number" @bind="tezinaInput" placeholder="1.0" class="input-field" step="0.1" />
+                        </div>
+                    }
+
+                    <div class="button-group">
+                        <button @onclick="DodajGranu" class="btn btn-primary">
+                            <span>+</span> Dodaj granu
+                        </button>
+                        <button @onclick="ObrisiSve" class="btn btn-delete">
+                            <span>🗑</span>
+                        </button>
+                    </div>
+
+                    <div class="export-section">
+                        <strong>Uvoz/izvoz:</strong>
+                        <div class="button-group">
+                            <button @onclick="ExportujGraf" class="btn btn-secondary">
+                                <span>⬇</span> Exportuj
+                            </button>
+                            <InputFile OnChange="ImportujGraf" id="fileInput" style="display: none;" accept=".json" />
+                            <label for="fileInput" class="btn btn-secondary" style="cursor: pointer;">
+                                <span>⬆</span> Importuj
+                            </label>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            }
+            else if (activeTab == "informacije")
+            {
+                <!-- Info -->
+                <div class="panel-section">
+                    <h3>Informacije o Grafu</h3>
+                    <p class="section-description">Pregled čvorova i grana</p>
+                    
+                    <div class="info-cards">
+                        <div class="info-card info-card-blue">
+                            <div class="info-label">Broj čvorova</div>
+                            <div class="info-value">@graf.cvorovi.Count</div>
+                        </div>
+                        <div class="info-card info-card-green">
+                            <div class="info-label">Broj grana</div>
+                            <div class="info-value">@graf.grane.Count</div>
+                        </div>
+                    </div>
+
+                    <div class="info-details">
+                        <div class="info-item">
+                            <strong>Čvorovi:</strong>
+                            @if (graf.cvorovi.Count > 0)
+                            {
+                                @foreach (var cvor in graf.cvorovi)
+                                {
+                                    <span class ="item-tag-cvor">
+                                        @cvor.naziv
+                                        <button @onclick = "() => ObrisiCvor(cvor)" class="delete-btn">x</button>
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <p>Nema čvorova</p>
+                            }
+                        </div>
+                        <div class="info-item">
+                            <strong>Grane:</strong>
+                            @if (graf.grane.Count > 0)
+                            {
+                                @foreach (var grana in graf.grane)
+                                {
+                                    <div class="item-tag-grana">
+                                        <span class="grana-label">@grana.pocetniCvor.naziv - @grana.krajnjiCvor.naziv</span>
+                                        <div class="grana-controls">
+                                            <input type="number" class="weight-input" @bind="grana.tezina" step="0.1" disabled="@(!tezinskiGraf)"/> 
+                                            <button @onclick="() => ObrisiGranu(grana)" class="delete-btn">x</button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p>Nema grana</p>
+                            }
+                            
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (activeTab == "algoritmi")
+            {
+                <!-- Algoritmi -->
+                <div class="panel-section">
+                    <h3>Algoritmi</h3>
+                    <p class="section-description">Odaberite algoritam za izvršavanje nad grafom</p>
+                    
+                    <div class="input-group">
+                        <label>Izaberite algoritam</label>
+                        <div class="custom-select-container">
+                            <div class="custom-select-trigger" @onclick="ToggleDropdown">
+                                <span>@(string.IsNullOrEmpty(odabraniAlgoritam) ? "Izaberite algoritam" : GetAlgoritamNaziv(odabraniAlgoritam))</span>
+                                <span class="arrow">▼</span>
+                            </div>
+                            @if (dropdown)
+                            {
+                                <div class="custom-options">
+                                    <div class="custom-option @(odabraniAlgoritam == "povezanost" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("povezanost")'>
+                                        Provera povezanosti
+                                    </div>
+                                    <div class="custom-option @(odabraniAlgoritam == "dijkstra" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("dijkstra")'>
+                                        Dijkstra (najkraći put)
+                                    </div>
+                                    <div class="custom-option @(odabraniAlgoritam == "kruskal" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("kruskal")'>
+                                        Kruskal
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <button @onclick="PokreniAlgoritam" class="btn btn-primary" style="width: 100%;">Pokreni algoritam</button>
+                    </div>
+
+                    @if (graf.cvorovi.Count == 0)
+                    {
+                        <div class="alert-box">
+                            Morate prvo kreirati graf da biste primenili algoritme
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -136,6 +207,9 @@
     bool usmerenGraf = false;
     string granaInput = "";
     double tezinaInput = 1.0;
+    string activeTab = "unos";
+    string odabraniAlgoritam = "";
+    bool dropdown = false;
 
     protected override void OnInitialized()
     {
@@ -144,16 +218,25 @@
 
     async void DodajGranu()
     {
-        if (string.IsNullOrWhiteSpace(granaInput) || granaInput.Length < 2 || granaInput.Length > 2)
+        if (string.IsNullOrWhiteSpace(granaInput) || (granaInput.Length < 2 && granaInput.Length != 1) || granaInput.Length > 2)
         {
             granaInput = "";
             return;
         }
 
+        if (granaInput.Length == 1)
+        {
+            string cvor = granaInput[0].ToString().ToUpper();
+            graf.DodajJedanCvor(cvor);
+            granaInput = "";
+            tezinaInput = 1.0;
+            return;
+        }
+
         string pocetniNaziv = granaInput[0].ToString().ToUpper();
         string krajnjiNaziv = granaInput[1].ToString().ToUpper();
-        
-        graf.Dodaj(pocetniNaziv, krajnjiNaziv, tezinskiGraf ? tezinaInput : Convert.ToDouble(null), usmerenGraf);
+
+        graf.Dodaj(pocetniNaziv, krajnjiNaziv, tezinaInput, usmerenGraf);
 
         granaInput = "";
         tezinaInput = 1.0;
@@ -175,10 +258,40 @@
         graf.ObrisiGranu(grana);
     }
 
+    void ToggleDropdown()
+    {
+        dropdown = !dropdown;
+    }
+
+    void SelectAlgorithm(string algoritam)
+    {
+        odabraniAlgoritam = algoritam;
+        dropdown = false;
+    }
+
+    string GetAlgoritamNaziv(string algoritam)
+    {
+        return algoritam switch
+        {
+            "povezanost" => "Provera povezanosti",
+            "dijkstra" => "Dijkstra (najkraći put)",
+            "kruskal" => "Kruskal",
+            _ => "Izaberite algoritam"
+        };
+    }
+
+    void PokreniAlgoritam()
+    {
+        // Implementacija algoritama kasnije
+    }
+
     async Task ExportujGraf()
     {
         try
         {
+            graf.usmeren = usmerenGraf;
+            graf.tezinski = tezinskiGraf;
+
             var options = new System.Text.Json.JsonSerializerOptions
             {
                 WriteIndented = true
@@ -208,7 +321,20 @@
 
             if (importovaniGraf != null)
             {
+                foreach (var grana in importovaniGraf.grane)
+                {
+                    var pocetni = importovaniGraf.cvorovi.FirstOrDefault(c => c.ID == grana.pocetniCvor.ID);
+                    var krajnji = importovaniGraf.cvorovi.FirstOrDefault(c => c.ID == grana.krajnjiCvor.ID);
+
+                    if (pocetni != null) grana.pocetniCvor = pocetni;
+                    if (krajnji != null) grana.krajnjiCvor = krajnji;
+                }
+
                 graf = importovaniGraf;
+
+                usmerenGraf = graf.usmeren;
+                tezinskiGraf = graf.tezinski;
+
                 await JS.InvokeVoidAsync("alert", "Graf je uspešno importovan!");
             }
         }

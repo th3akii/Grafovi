@@ -6,6 +6,8 @@ namespace Grafovi.Models
         public string naziv { get; set; }
         public List<GrafCvor> cvorovi { get; set; }
         public List<GrafGrana> grane { get; set; }
+        public bool usmeren { get; set; } = false;
+        public bool tezinski { get; set; } = false;
 
         public Graf()
         {
@@ -53,8 +55,20 @@ namespace Grafovi.Models
                     pocetniCvor = pocetniCvor,
                     krajnjiCvor = krajnjiCvor,
                     tezina = tezinaInput,
-                    usmerena = false
+                    usmerena = usmerenGraf
                 });
+            }
+
+            usmeren = usmerenGraf;
+        }
+
+        public void DodajJedanCvor(string nazivCvora)
+        {
+            var cvorPostoji = cvorovi.Any(c => c.naziv == nazivCvora);
+            if (!cvorPostoji)
+            {
+                var noviCvor = new GrafCvor(cvorovi.Count + 1, nazivCvora);
+                cvorovi.Add(noviCvor);
             }
         }
     }

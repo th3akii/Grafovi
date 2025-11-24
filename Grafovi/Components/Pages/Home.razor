@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Grafovi.Models
 @using System.Threading.Tasks
+@using System.Xml.Serialization
 @inject IJSRuntime JS
 
 <PageTitle>Grafovi</PageTitle>
@@ -9,13 +10,65 @@
 <div class="graph-container">
     <!-- Levi Panel -->
     <div class="graph-panel">
-        <div class="graph-header">
+        <div class="graph-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2>Graf</h2>
+            <button @onclick="ToggleSettings" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">
+                ⚙ Podešavanja
+            </button>
         </div>
-        <div id="graphCanvas" class="graph-canvas">
-            <p class="graph-placeholder">Unesite grane da biste kreirali graf</p>
-        </div>
+        @if (graf.cvorovi.Count == 0)
+        {
+            <div class="graph-canvas graph-canvas-placeholder">
+                <p class="graph-placeholder">Unesite grane da biste kreirali graf</p>
+            </div>
+        }
+        else
+        {
+            <div id="graphCanvas" class="graph-canvas"></div>
+        }
     </div>
+
+    <!-- Settings -->
+    @if (prikaziPodesavanja)
+    {
+        <div class="modal-backdrop">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Podešavanja Vizualizacije</h3>
+                    <button @onclick="ToggleSettings" class="close-btn">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label>Boja čvorova</label>
+                        <input type="color" @bind="tempBojaCvora" class="color-picker" />
+                    </div>
+                    <div class="input-group">
+                        <label>Boja grana</label>
+                        <input type="color" @bind="tempBojaGrane" class="color-picker" />
+                    </div>
+                    <div class="input-group">
+                        <label>Veličina čvorova (@tempVelicinaCvora)</label>
+                        <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
+                    </div>
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Zadrži pozicije (ne resetuj graf)</span>
+                            <input type="checkbox" @bind="tempCuvajPoziciju" class="toggle-switch" />
+                        </label>
+                    </div>
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Zaključaj pomeranje</span>
+                            <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @onclick="ApplySettings" class="btn btn-primary">Primeni</button>
+                </div>
+            </div>
+        </div>
+    }
 
     <!-- Desni Panel -->
     <div class="control-panel" style="@(activeTab == "algoritmi" ? "min-height: 350px;" : "")">
@@ -44,7 +97,7 @@
                     <div class="input-group-inline">
                         <label>
                             <span>Težinski graf</span>
-                            <input type="checkbox" @bind="tezinskiGraf" class="toggle-switch" />
+                            <input type="checkbox" class="toggle-switch" checked="@tezinskiGraf" @onchange="OnTezinskiGrafChanged" />
                         </label>
                     </div>
 
@@ -136,7 +189,7 @@
                                     <div class="item-tag-grana">
                                         <span class="grana-label">@grana.pocetniCvor.naziv - @grana.krajnjiCvor.naziv</span>
                                         <div class="grana-controls">
-                                            <input type="number" class="weight-input" @bind="grana.tezina" step="0.1" disabled="@(!tezinskiGraf)"/> 
+                                            <input type="number" class="weight-input" @bind="grana.tezina" @bind:after="() => AzurirajTezinu(grana)" step="0.1" disabled="@(!tezinskiGraf)"/> 
                                             <button @onclick="() => ObrisiGranu(grana)" class="delete-btn">x</button>
                                         </div>
                                     </div>
@@ -210,13 +263,39 @@
     string activeTab = "unos";
     string odabraniAlgoritam = "";
     bool dropdown = false;
+    bool zaRenderovanje = false;
+    bool prikaziPodesavanja = false;
+
+    string bojaCvora = "#97C2FC";
+    string bojaGrane = "#2B7CE9";
+    int velicinaCvora = 16;
+    bool zakljucanoPomeranje = false;
+    bool cuvajPoziciju = false;
+
+    string tempBojaCvora = "#97C2FC";
+    string tempBojaGrane = "#2B7CE9";
+    int tempVelicinaCvora = 16;
+    bool tempZakljucanoPomeranje = false;
+    bool tempCuvajPoziciju = false;
 
     protected override void OnInitialized()
     {
         // Prazan graf na pocetku
     }
 
-    async void DodajGranu()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (zaRenderovanje)
+        {
+            zaRenderovanje = false;
+            if (graf.cvorovi.Count > 0)
+            {
+                await RenderGraf();
+            }
+        }
+    }
+
+    async Task DodajGranu()
     {
         if (string.IsNullOrWhiteSpace(granaInput) || (granaInput.Length < 2 && granaInput.Length != 1) || granaInput.Length > 2)
         {
@@ -230,6 +309,7 @@
             graf.DodajJedanCvor(cvor);
             granaInput = "";
             tezinaInput = 1.0;
+            zaRenderovanje = true;
             return;
         }
 
@@ -240,22 +320,39 @@
 
         granaInput = "";
         tezinaInput = 1.0;
+        zaRenderovanje = true;
     }
 
-    void ObrisiSve()
+    async Task ObrisiSve()
     {
         graf.cvorovi.Clear();
         graf.grane.Clear();
+        await ObrisiGraf();
+        ResetSettings();
     }
 
-    void ObrisiCvor(GrafCvor cvor)
+    async Task ObrisiGraf()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("clearGraph", "graphCanvas");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing graph: {ex.Message}");
+        }
+    }
+
+    async Task ObrisiCvor(GrafCvor cvor)
     {
         graf.ObrisiCvor(cvor);
+        zaRenderovanje = true;
     }
 
-    void ObrisiGranu(GrafGrana grana)
+    async Task ObrisiGranu(GrafGrana grana)
     {
         graf.ObrisiGranu(grana);
+        zaRenderovanje = true;
     }
 
     void ToggleDropdown()
@@ -336,6 +433,7 @@
                 tezinskiGraf = graf.tezinski;
 
                 await JS.InvokeVoidAsync("alert", "Graf je uspešno importovan!");
+                zaRenderovanje = true;
             }
         }
         catch (Exception)
@@ -343,5 +441,118 @@
             await JS.InvokeVoidAsync("alert", "Došlo je do greške prilikom importovanja grafa.");
         }
         await Task.CompletedTask;
+    }
+
+    async Task RenderGraf()
+    {
+        try
+        {
+            await Task.Delay(50);
+            var settings = new
+            {
+                bojaCvora,
+                bojaGrane,
+                velicinaCvora,
+                zakljucanoPomeranje,
+                cuvajPoziciju
+            };
+            await JS.InvokeVoidAsync("renderGraph", "graphCanvas", graf.cvorovi, graf.grane, usmerenGraf, tezinskiGraf, settings);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering graph: {ex.Message}");
+        }
+    }
+
+    void ToggleSettings()
+    {
+        if (!prikaziPodesavanja)
+        {
+            LoadTempSettings();
+            prikaziPodesavanja = true;
+        }
+        else
+        {
+            prikaziPodesavanja = false;
+        }
+    }
+
+    void LoadTempSettings()
+    {
+        tempBojaCvora = bojaCvora;
+        tempBojaGrane = bojaGrane;
+        tempVelicinaCvora = velicinaCvora;
+        tempZakljucanoPomeranje = zakljucanoPomeranje;
+        tempCuvajPoziciju = cuvajPoziciju;
+    }
+
+    async Task ApplySettings()
+    {
+        bojaCvora = tempBojaCvora;
+        bojaGrane = tempBojaGrane;
+        velicinaCvora = tempVelicinaCvora;
+        zakljucanoPomeranje = tempZakljucanoPomeranje;
+        cuvajPoziciju = tempCuvajPoziciju;
+
+        prikaziPodesavanja = false;
+
+        if (graf.cvorovi.Count > 0)
+        {
+            await RenderGraf();
+        }
+    }
+
+    void ResetSettings()
+    {
+        bojaCvora = "#97C2FC";
+        bojaGrane = "#2B7CE9";
+        velicinaCvora = 16;
+        zakljucanoPomeranje = false;
+        cuvajPoziciju = false;
+
+        LoadTempSettings();
+    }
+
+    async Task OnTezinskiGrafChanged(ChangeEventArgs args)
+    {
+        var newValue = args.Value is bool checkedValue && checkedValue;
+        if (tezinskiGraf == newValue)
+        {
+            return;
+        }
+
+        tezinskiGraf = newValue;
+        graf.tezinski = newValue;
+
+        if (graf.cvorovi.Count == 0)
+        {
+            zaRenderovanje = true;
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("updateEdgeLabels", "graphCanvas", graf.grane, newValue);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating edge labels: {ex.Message}");
+            zaRenderovanje = true;
+        }
+    }
+
+    async Task AzurirajTezinu(GrafGrana grana)
+    {
+        if (tezinskiGraf)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("updateEdgeLabels", "graphCanvas", new[] { grana }, true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating single edge label: {ex.Message}");
+            }
+        }
     }
 }

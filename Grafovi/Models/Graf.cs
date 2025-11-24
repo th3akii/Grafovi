@@ -23,7 +23,11 @@ namespace Grafovi.Models
         
         public void ObrisiGranu(GrafGrana grana)
         {
-            cvorovi.RemoveAll(c => c == grana.pocetniCvor || c == grana.krajnjiCvor);
+            if (grana == null)
+            {
+                return;
+            }
+
             grane.Remove(grana);
         }
 
@@ -49,9 +53,10 @@ namespace Grafovi.Models
             );
             if (!granaPostoji)
             {
+                var granaId = KreirajIdGrane(pocetniCvor, krajnjiCvor, usmerenGraf);
                 grane.Add(new GrafGrana
                 {
-                    ID = grane.Count + 1,
+                    ID = granaId,
                     pocetniCvor = pocetniCvor,
                     krajnjiCvor = krajnjiCvor,
                     tezina = tezinaInput,
@@ -70,6 +75,40 @@ namespace Grafovi.Models
                 var noviCvor = new GrafCvor(cvorovi.Count + 1, nazivCvora);
                 cvorovi.Add(noviCvor);
             }
+        }
+
+        string KreirajIdGrane(GrafCvor pocetni, GrafCvor krajnji, bool usmerenGraf)
+        {
+            if (pocetni == null || krajnji == null)
+            {
+                return Guid.NewGuid().ToString("N");
+            }
+
+            if (usmerenGraf)
+            {
+                return $"{pocetni.naziv}{krajnji.naziv}";
+            }
+
+            var nazivi = new[] { pocetni.naziv, krajnji.naziv }
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToArray();
+
+            return $"{nazivi[0]}{nazivi[1]}";
+        }
+
+        public void UkloniGraneBezPostojecihCvorova()
+        {
+            if (cvorovi.Count == 0 || grane.Count == 0)
+            {
+                return;
+            }
+
+            var postojeciCvorovi = new HashSet<int>(cvorovi.Select(c => c.ID));
+            grane.RemoveAll(g =>
+                g.pocetniCvor == null ||
+                g.krajnjiCvor == null ||
+                !postojeciCvorovi.Contains(g.pocetniCvor.ID) ||
+                !postojeciCvorovi.Contains(g.krajnjiCvor.ID));
         }
     }
 }

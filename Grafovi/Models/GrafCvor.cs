@@ -4,9 +4,7 @@ namespace Grafovi.Models
     {
         public int ID { get; set; }
         public string naziv { get; set; }
-        public double x { get; set; }
-        public double y { get; set; }
-        public string boja { get; set; } = "LightGray";
+        public string boja { get; set; } = "#97C2FC";
 
         public GrafCvor(int id, string naziv)
         {

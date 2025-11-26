@@ -47,13 +47,13 @@ namespace Grafovi.Models
                 cvorovi.Add(krajnjiCvor);
             }
 
-            var granaPostoji = grane.Any(g =>
+            bool granaPostoji = grane.Any(g =>
                 (g.pocetniCvor == pocetniCvor && g.krajnjiCvor == krajnjiCvor) ||
                 (!usmerenGraf && g.pocetniCvor == krajnjiCvor && g.krajnjiCvor == pocetniCvor)
             );
             if (!granaPostoji)
             {
-                var granaId = KreirajIdGrane(pocetniCvor, krajnjiCvor, usmerenGraf);
+                string granaId = KreirajIDGrane(pocetniCvor, krajnjiCvor, usmerenGraf);
                 grane.Add(new GrafGrana
                 {
                     ID = granaId,
@@ -77,38 +77,14 @@ namespace Grafovi.Models
             }
         }
 
-        string KreirajIdGrane(GrafCvor pocetni, GrafCvor krajnji, bool usmerenGraf)
+        string KreirajIDGrane(GrafCvor pocetni, GrafCvor krajnji, bool usmerenGraf)
         {
             if (pocetni == null || krajnji == null)
             {
                 return Guid.NewGuid().ToString("N");
             }
 
-            if (usmerenGraf)
-            {
-                return $"{pocetni.naziv}{krajnji.naziv}";
-            }
-
-            var nazivi = new[] { pocetni.naziv, krajnji.naziv }
-                .OrderBy(n => n, StringComparer.Ordinal)
-                .ToArray();
-
-            return $"{nazivi[0]}{nazivi[1]}";
-        }
-
-        public void UkloniGraneBezPostojecihCvorova()
-        {
-            if (cvorovi.Count == 0 || grane.Count == 0)
-            {
-                return;
-            }
-
-            var postojeciCvorovi = new HashSet<int>(cvorovi.Select(c => c.ID));
-            grane.RemoveAll(g =>
-                g.pocetniCvor == null ||
-                g.krajnjiCvor == null ||
-                !postojeciCvorovi.Contains(g.pocetniCvor.ID) ||
-                !postojeciCvorovi.Contains(g.krajnjiCvor.ID));
+            return $"{pocetni.naziv}{krajnji.naziv}";
         }
     }
 }

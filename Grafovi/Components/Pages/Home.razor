@@ -3,6 +3,7 @@
 @using Grafovi.Models
 @using System.Threading.Tasks
 @using System.Xml.Serialization
+@using Grafovi.Models.Algoritmi
 @inject IJSRuntime JS
 
 <PageTitle>Grafovi</PageTitle>
@@ -10,22 +11,30 @@
 <div class="graph-container">
     <!-- Levi Panel -->
     <div class="graph-panel">
-        <div class="graph-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="graph-header">
             <h2>Graf</h2>
-            <button @onclick="ToggleSettings" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">
-                ⚙ Podešavanja
-            </button>
-        </div>
-        @if (graf.cvorovi.Count == 0)
-        {
-            <div class="graph-canvas graph-canvas-placeholder">
-                <p class="graph-placeholder">Unesite grane da biste kreirali graf</p>
+        </div>        
+        <div class="graph-content-wrapper">
+            <div class="canvas-controls">
+                <button @onclick="RefreshGraf"class="canvas-btn" title="Ponovo generiši">
+                    <span>↻</span>
+                </button>
+                <button @onclick="ToggleSettings" class="canvas-btn" title="Podešavanja">
+                    <span>⚙</span>
+                </button>
             </div>
-        }
-        else
-        {
-            <div id="graphCanvas" class="graph-canvas"></div>
-        }
+
+            @if (graf.cvorovi.Count == 0)
+            {
+                <div class="graph-canvas graph-canvas-placeholder">
+                    <p class="graph-placeholder">Unesite grane da biste kreirali graf</p>
+                </div>
+            }
+            else
+            {
+                <div id="graphCanvas" class="graph-canvas"></div>
+            }
+        </div>
     </div>
 
     <!-- Settings -->
@@ -209,7 +218,7 @@
                 <!-- Algoritmi -->
                 <div class="panel-section">
                     <h3>Algoritmi</h3>
-                    <p class="section-description">Odaberite algoritam za izvršavanje nad grafom</p>
+                    <p class="section-description">Odaberite algoritam</p>
                     
                     <div class="input-group">
                         <label>Izaberite algoritam</label>
@@ -225,9 +234,9 @@
                                          @onclick='() => SelectAlgorithm("povezanost")'>
                                         Provera povezanosti
                                     </div>
-                                    <div class="custom-option @(odabraniAlgoritam == "dijkstra" ? "selected" : "")" 
-                                         @onclick='() => SelectAlgorithm("dijkstra")'>
-                                        Dijkstra (najkraći put)
+                                    <div class="custom-option @(odabraniAlgoritam == "dajkstra" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("dajkstra")'>
+                                        Dajkstra
                                     </div>
                                     <div class="custom-option @(odabraniAlgoritam == "kruskal" ? "selected" : "")" 
                                          @onclick='() => SelectAlgorithm("kruskal")'>
@@ -241,6 +250,40 @@
                     <div style="margin-top: 16px;">
                         <button @onclick="PokreniAlgoritam" class="btn btn-primary" style="width: 100%;">Pokreni algoritam</button>
                     </div>
+
+                    @if (prikaziRezultat && odabraniAlgoritam == "povezanost")
+                    {
+                        <div class="result-box">
+                            <h4>Rezultat:</h4>
+                            @if (rezultatJePovezan)
+                            {
+                                <div class="result-success">
+                                    <span class="icon">✅</span>
+                                    <span>Graf je povezan</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="result-error">
+                                    <span class="icon">❌</span>
+                                    <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
+                                </div>
+                            }
+
+                            @for (int i = 0; i < grupeCvorova.Count; i++)
+                            {
+                                <div style="margin-bottom: 12px;">
+                                    <p style="font-weight: 600; margin-bottom: 4px;">Grupa @(i + 1):</p>
+                                    <div class="visited-nodes">
+                                        @foreach (var cvor in grupeCvorova[i].OrderBy(c => c.naziv))
+                                        {
+                                            <span class="node-badge">@cvor.naziv</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
 
                     @if (graf.cvorovi.Count == 0)
                     {
@@ -277,6 +320,11 @@
     int tempVelicinaCvora = 16;
     bool tempZakljucanoPomeranje = false;
     bool tempCuvajPoziciju = false;
+
+    // Rezultat algoritma
+    bool prikaziRezultat = false;
+    bool rezultatJePovezan = false;
+    List<List<GrafCvor>> grupeCvorova = new List<List<GrafCvor>>();
 
     protected override void OnInitialized()
     {
@@ -371,7 +419,7 @@
         return algoritam switch
         {
             "povezanost" => "Provera povezanosti",
-            "dijkstra" => "Dijkstra (najkraći put)",
+            "dajkstra" => "Dajkstra",
             "kruskal" => "Kruskal",
             _ => "Izaberite algoritam"
         };
@@ -379,7 +427,22 @@
 
     void PokreniAlgoritam()
     {
-        // Implementacija algoritama kasnije
+        if (graf.cvorovi.Count == 0)
+        {
+            return;
+        }
+        if (odabraniAlgoritam == "povezanost")
+        {
+            RezultatPovezanosti? rezultat = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
+            
+            prikaziRezultat = true;
+            rezultatJePovezan = rezultat.jePovezan;
+            grupeCvorova = rezultat.cvoroviUGrupi;
+        }
+        else
+        {
+            JS.InvokeVoidAsync("alert", "Ovaj algoritam jos nije napravljen.");
+        }
     }
 
     async Task ExportujGraf()
@@ -462,6 +525,12 @@
         {
             Console.WriteLine($"Error rendering graph: {ex.Message}");
         }
+    }
+
+    void RefreshGraf()
+    {
+        ResetSettings();
+        zaRenderovanje = true;
     }
 
     void ToggleSettings()

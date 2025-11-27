@@ -129,7 +129,6 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
             instance.edges.remove(edgesToRemove);
             instance.edges.update(edgesArray);
 
-            // Update Options - disable physics to prevent rearrangement
             instance.network.setOptions({
                 interaction: {
                     dragNodes: !lockMovement,
@@ -140,7 +139,7 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                     font: { size: nodeSize }
                 },
                 physics: {
-                    enabled: false // Disable physics when preserving positions
+                    enabled: false
                 }
             });
 
@@ -227,7 +226,6 @@ function updateEdgeLabels(containerId, edgesData, isWeighted) {
             var id = (edge.id || edge.ID).toString();
             var weight = edge.tezina ?? edge.Tezina;
             
-            // Use space " " to clear label if null doesn't work as expected
             var labelContent = (isWeighted && weight != null) ? weight.toString() : " ";
 
             return {

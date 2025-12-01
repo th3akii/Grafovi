@@ -104,7 +104,7 @@ namespace Grafovi.Models.Algoritmi
                         
                         foreach (var susedniCvor in graf.cvorovi)
                         {
-                            if (matricaPovezanosti.PostojiGrana(trenutni, susedniCvor) && 
+                            if (matricaPovezanosti.PostojiGrana(graf, trenutni, susedniCvor) && 
                                 poseceni.ContainsKey(susedniCvor.ID) && 
                                 poseceni[susedniCvor.ID] == 0)
                             {

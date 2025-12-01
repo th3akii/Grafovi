@@ -9,7 +9,7 @@ namespace Grafovi.Models.Algoritmi
     public class DajkstraRezultat
     {
         public string cvor { get; set; } = "";
-        public List<string> put { get; set; } = new List<string>();
+        public string put { get; set; }
         public double udaljenost { get; set; }
     }
     
@@ -31,17 +31,11 @@ namespace Grafovi.Models.Algoritmi
             {
                 distanca[cvor.ID] = double.MaxValue;
                 obradjeni[cvor.ID] = 0;
-                put[cvor.ID] = ""; // Prazan put na početku
+                put[cvor.ID] = "";
             }
             
             distanca[pocetniCvor.ID] = 0;
-            put[pocetniCvor.ID] = pocetniCvor.naziv; // Put do početnog čvora je samo on sam
-
-            for (int i = 1; i < graf.cvorovi.Count; i++)
-            {
-                distanca[graf.cvorovi[i].ID] = double.MaxValue;
-                obradjeni[graf.cvorovi[i].ID] = 0;
-            }
+            put[pocetniCvor.ID] = pocetniCvor.naziv;
 
             foreach (var cvor in graf.cvorovi)
             {
@@ -50,14 +44,11 @@ namespace Grafovi.Models.Algoritmi
                 {
                     if(obradjeni[sused.cvor.ID] == 0)
                     {
-                        if (distanca[sused.cvor.ID] <= distanca[cvor.ID] + sused.tezina)
+                        double novaDistanca = distanca[cvor.ID] + sused.tezina;
+                        if (novaDistanca < distanca[sused.cvor.ID])
                         {
-                            distanca[sused.cvor.ID] = distanca[sused.cvor.ID];
-                        }
-                        else
-                        {
-                            distanca[sused.cvor.ID] = distanca[cvor.ID] + sused.tezina;
-                            put[sused.cvor.ID] = put[cvor.ID] + sused.cvor.naziv;
+                            distanca[sused.cvor.ID] = novaDistanca;
+                            put[sused.cvor.ID] = put[cvor.ID] + " -> " + sused.cvor.naziv;
                         }
                     }
                 }
@@ -71,7 +62,7 @@ namespace Grafovi.Models.Algoritmi
                     rezultati.Add(new DajkstraRezultat
                     {
                         cvor = cvor.naziv,
-                        put = new List<string> { put[cvor.ID] },
+                        put = put[cvor.ID],
                         udaljenost = distanca[cvor.ID]
                     });
                 }
@@ -80,20 +71,56 @@ namespace Grafovi.Models.Algoritmi
             return rezultati;
         }
 
-        public string GetDistanceString()
+        public List<DajkstraRezultat> DajkstraMatrica(Graf graf, GrafCvor pocetniCvor)
         {
-            if (distanca == null)
+            List<DajkstraRezultat> rezultati = new List<DajkstraRezultat>();
+            obradjeni = new Dictionary<int, int>();
+            distanca = new Dictionary<int, double>();
+            put = new Dictionary<int, string>();
+            var matricaSusedstva = MatricaPovezanosti.KreirajIzGrafa(graf);
+
+            foreach (var cvor in graf.cvorovi)
             {
-                return string.Empty;
+                distanca[cvor.ID] = double.MaxValue;
+                obradjeni[cvor.ID] = 0;
+                put[cvor.ID] = "";
             }
 
-            var sb = new System.Text.StringBuilder();
-            foreach (var d in distanca)
+            distanca[pocetniCvor.ID] = 0;
+            put[pocetniCvor.ID] = pocetniCvor.naziv;
+
+            foreach (var cvor in graf.cvorovi)
             {
-                sb.AppendLine($"Cvor ID: {d.Key} Distanca: {d.Value}");
+                var susedniCvorovi = matricaSusedstva.GetSusedneCvorove(graf, cvor);
+                foreach (var sused in susedniCvorovi)
+                {
+                    if (obradjeni[sused.cvor.ID] == 0)
+                    {
+                        double novaDistanca = distanca[cvor.ID] + sused.tezina;
+                        if (novaDistanca < distanca[sused.cvor.ID])
+                        {
+                            distanca[sused.cvor.ID] = novaDistanca;
+                            put[sused.cvor.ID] = put[cvor.ID] + " -> " + sused.cvor.naziv;
+                        }
+                    }
+                }
+                obradjeni[cvor.ID] = 1;
             }
 
-            return sb.ToString();
+            foreach (var cvor in graf.cvorovi)
+            {
+                if (cvor.ID != pocetniCvor.ID)
+                {
+                    rezultati.Add(new DajkstraRezultat
+                    {
+                        cvor = cvor.naziv,
+                        put = put[cvor.ID],
+                        udaljenost = distanca[cvor.ID]
+                    });
+                }
+            }
+
+            return rezultati;
         }
     }
 }

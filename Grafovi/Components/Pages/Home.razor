@@ -326,7 +326,7 @@
                                                 <span class="dajkstra-distance-badge">@rezultat.udaljenost</span>
                                             </div>
                                             <div class="dajkstra-path">
-                                                Put: @string.Join(" → ", rezultat.put)
+                                                Put: @rezultat.put
                                             </div>
                                         </div>
                                     }
@@ -509,28 +509,40 @@
         }
         else if (odabraniAlgoritam == "dajkstra")
         {
-            /*
-            GrafCvor pocetniCvor = graf.cvorovi[0];
-            var alg1 = new GrafAlgoritamDajkstra();
-            alg1.DajkstraLista(graf, pocetniCvor);
-            string tString = alg1.GetDistanceString();
-            JS.InvokeVoidAsync("alert", tString);*/
-
-
             if (string.IsNullOrEmpty(pocetniCvorDajkstra))
             {
                 JS.InvokeVoidAsync("alert", "Izaberite početni čvor.");
                 return;
             }
 
+            RezultatPovezanosti? rezultat = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
+            
+            if(!rezultat.jePovezan)
+            {
+                odabraniAlgoritam = "povezanost";
+                prikaziRezultat = true;
+                rezultatJePovezan = rezultat.jePovezan;
+                grupeCvorova = rezultat.cvoroviUGrupi;
+            }
+
             GrafCvor? pocetni = graf.cvorovi.FirstOrDefault(c => c.naziv == pocetniCvorDajkstra);
             if (pocetni != null)
             {
+                ///*Lista
                 var alg = new GrafAlgoritamDajkstra();
                 
                 dajkstraRezultati = alg.DajkstraLista(graf, pocetni);
                 
                 prikaziRezultat = true;
+                //*/
+                
+                /* Matrica
+                var alg = new GrafAlgoritamDajkstra();
+
+                dajkstraRezultati = alg.DajkstraMatrica(graf, pocetni);
+
+                prikaziRezultat = true;
+                */
             }
         }
         else if (odabraniAlgoritam == "kruskal")

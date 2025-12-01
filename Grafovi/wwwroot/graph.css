@@ -658,3 +658,78 @@
 .canvas-btn:active {
     transform: translateY(0);
 }
+
+/* dajkstra Result Styles */
+.dajkstra-results {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.dajkstra-result-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.dajkstra-result-card:hover {
+    border-color: #2B7CE9;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.dajkstra-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dajkstra-target-node {
+    font-weight: 600;
+    color: #374151;
+    font-size: 15px;
+}
+
+.dajkstra-distance-badge {
+    background: #111827;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
+}
+
+.dajkstra-path {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+/* Scrollbar styling for the results list */
+.dajkstra-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dajkstra-results::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.dajkstra-results::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.dajkstra-results::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+

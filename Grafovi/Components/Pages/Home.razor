@@ -1,0 +1,733 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using Grafovi.Models
+@using System.Threading.Tasks
+@using System.Xml.Serialization
+@using Grafovi.Models.Algoritmi
+@inject IJSRuntime JS
+
+<PageTitle>Grafovi</PageTitle>
+
+<div class="graph-container">
+    <!-- Levi Panel -->
+    <div class="graph-panel">
+        <div class="graph-header">
+            <h2>Graf</h2>
+        </div>        
+        <div class="graph-content-wrapper">
+            <div class="canvas-controls">
+                <button @onclick="RefreshGraf"class="canvas-btn" title="Ponovo generiši">
+                    <span>↻</span>
+                </button>
+                <button @onclick="ToggleSettings" class="canvas-btn" title="Podešavanja">
+                    <span>⚙</span>
+                </button>
+            </div>
+
+            @if (graf.cvorovi.Count == 0)
+            {
+                <div class="graph-canvas graph-canvas-placeholder">
+                    <p class="graph-placeholder">Unesite grane da biste kreirali graf</p>
+                </div>
+            }
+            else
+            {
+                <div id="graphCanvas" class="graph-canvas"></div>
+            }
+        </div>
+    </div>
+
+    <!-- Settings -->
+    @if (prikaziPodesavanja)
+    {
+        <div class="modal-backdrop">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Podešavanja Vizualizacije</h3>
+                    <button @onclick="ToggleSettings" class="close-btn">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label>Boja čvorova</label>
+                        <input type="color" @bind="tempBojaCvora" class="color-picker" />
+                    </div>
+                    <div class="input-group">
+                        <label>Boja grana</label>
+                        <input type="color" @bind="tempBojaGrane" class="color-picker" />
+                    </div>
+                    <div class="input-group">
+                        <label>Veličina čvorova (@tempVelicinaCvora)</label>
+                        <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
+                    </div>
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Zadrži pozicije (ne resetuj graf)</span>
+                            <input type="checkbox" @bind="tempCuvajPoziciju" class="toggle-switch" />
+                        </label>
+                    </div>
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Zaključaj pomeranje</span>
+                            <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @onclick="ApplySettings" class="btn btn-primary">Primeni</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Desni Panel -->
+    <div class="control-panel" style="@(activeTab == "algoritmi" ? "min-height: 350px;" : "")">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab @(activeTab == "unos" ? "active" : "")" @onclick='() => activeTab = "unos"'>
+                Unos
+            </button>
+            <button class="tab @(activeTab == "informacije" ? "active" : "")" @onclick='() => activeTab = "informacije"'>
+                Informacije
+            </button>
+            <button class="tab @(activeTab == "algoritmi" ? "active" : "")" @onclick='() => activeTab = "algoritmi"'>
+                Algoritmi
+            </button>
+        </div>
+
+        <!-- Tabovi -->
+        <div class="tab-content">
+            @if (activeTab == "unos")
+            {
+                <!-- Unos -->
+                <div class="panel-section">
+                    <h3>Unos Grafa</h3>
+                    <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
+                    
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Težinski graf</span>
+                            <input type="checkbox" class="toggle-switch" checked="@tezinskiGraf" @onchange="OnTezinskiGrafChanged" />
+                        </label>
+                    </div>
+
+                    <div class="input-group-inline">
+                        <label>
+                            <span>Usmeren graf</span>
+                            <input disabled="@(graf.grane.Count > 0)" type="checkbox" @bind="usmerenGraf" class="toggle-switch" />
+                        </label>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Grana (npr. AB, CD)</label>
+                        <input type="text" @bind="granaInput" placeholder="AB" class="input-field" />
+                    </div>
+
+                    @if (tezinskiGraf)
+                    {
+                        <div class="input-group">
+                            <label>Težina</label>
+                            <input type="number" @bind="tezinaInput" placeholder="1.0" class="input-field" step="0.1" />
+                        </div>
+                    }
+
+                    <div class="button-group">
+                        <button @onclick="DodajGranu" class="btn btn-primary">
+                            <span>+</span> Dodaj granu
+                        </button>
+                        <button @onclick="ObrisiSve" class="btn btn-delete">
+                            <span>🗑</span>
+                        </button>
+                    </div>
+
+                    <div class="export-section">
+                        <strong>Uvoz/izvoz:</strong>
+                        <div class="button-group">
+                            <button @onclick="ExportujGraf" class="btn btn-secondary">
+                                <span>⬇</span> Exportuj
+                            </button>
+                            <InputFile OnChange="ImportujGraf" id="fileInput" style="display: none;" accept=".json" />
+                            <label for="fileInput" class="btn btn-secondary" style="cursor: pointer;">
+                                <span>⬆</span> Importuj
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (activeTab == "informacije")
+            {
+                <!-- Info -->
+                <div class="panel-section">
+                    <h3>Informacije o Grafu</h3>
+                    <p class="section-description">Pregled čvorova i grana</p>
+                    
+                    <div class="info-cards">
+                        <div class="info-card info-card-blue">
+                            <div class="info-label">Broj čvorova</div>
+                            <div class="info-value">@graf.cvorovi.Count</div>
+                        </div>
+                        <div class="info-card info-card-green">
+                            <div class="info-label">Broj grana</div>
+                            <div class="info-value">@graf.grane.Count</div>
+                        </div>
+                    </div>
+
+                    <div class="info-details">
+                        <div class="info-item">
+                            <strong>Čvorovi:</strong>
+                            @if (graf.cvorovi.Count > 0)
+                            {
+                                @foreach (var cvor in graf.cvorovi)
+                                {
+                                    <span class ="item-tag-cvor">
+                                        @cvor.naziv
+                                        <button @onclick = "() => ObrisiCvor(cvor)" class="delete-btn">x</button>
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <p>Nema čvorova</p>
+                            }
+                        </div>
+                        <div class="info-item">
+                            <strong>Grane:</strong>
+                            @if (graf.grane.Count > 0)
+                            {
+                                @foreach (var grana in graf.grane)
+                                {
+                                    <div class="item-tag-grana">
+                                        <span class="grana-label">@grana.pocetniCvor.naziv - @grana.krajnjiCvor.naziv</span>
+                                        <div class="grana-controls">
+                                            <input type="number" class="weight-input" @bind="grana.tezina" @bind:after="() => AzurirajTezinu(grana)" step="0.1" disabled="@(!tezinskiGraf)"/> 
+                                            <button @onclick="() => ObrisiGranu(grana)" class="delete-btn">x</button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p>Nema grana</p>
+                            }
+                            
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (activeTab == "algoritmi")
+            {
+                <!-- Algoritmi -->
+                <div class="panel-section">
+                    <h3>Algoritmi</h3>
+                    <p class="section-description">Odaberite algoritam</p>
+                    
+                    <div class="input-group">
+                        <label>Izaberite algoritam</label>
+                        <div class="custom-select-container">
+                            <div class="custom-select-trigger" @onclick="ToggleDropdown">
+                                <span>@(string.IsNullOrEmpty(odabraniAlgoritam) ? "Izaberite algoritam" : GetAlgoritamNaziv(odabraniAlgoritam))</span>
+                                <span class="arrow">▼</span>
+                            </div>
+                            @if (dropdown)
+                            {
+                                <div class="custom-options">
+                                    <div class="custom-option @(odabraniAlgoritam == "povezanost" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("povezanost")'>
+                                        Provera povezanosti
+                                    </div>
+                                    <div class="custom-option @(odabraniAlgoritam == "dajkstra" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("dajkstra")'>
+                                        Dajkstra
+                                    </div>
+                                    <div class="custom-option @(odabraniAlgoritam == "kruskal" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("kruskal")'>
+                                        Kruskal
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (odabraniAlgoritam == "dajkstra")
+                    {
+                        <div class="input-group">
+                            <label>Početni čvor</label>
+                            <div class="custom-select-container">
+                                <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni čvor" : $"Čvor {pocetniCvorDajkstra}")</span>
+                                    <span class="arrow">▼</span>
+                                </div>
+                                @if (dropdownPocetniCvor)
+                                {
+                                    <div class="custom-options">
+                                        @foreach (var cvor in graf.cvorovi)
+                                        {
+                                            <div class="custom-option @(pocetniCvorDajkstra == cvor.naziv ? "selected" : "")" 
+                                                 @onclick='() => SelectPocetniCvor(cvor.naziv)'>
+                                                Čvor @cvor.naziv
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div style="margin-top: 16px;">
+                        <button @onclick="PokreniAlgoritam" class="btn btn-primary" style="width: 100%;">Pokreni algoritam</button>
+                    </div>
+
+                    @if (prikaziRezultat)
+                    {
+                        @if (odabraniAlgoritam == "povezanost")
+                        {
+                            <div class="result-box">
+                                <h4>Rezultat:</h4>
+                                @if (rezultatJePovezan)
+                                {
+                                    <div class="result-success">
+                                        <span class="icon">✅</span>
+                                        <span>Graf je povezan</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="result-error">
+                                        <span class="icon">❌</span>
+                                        <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
+                                    </div>
+                                }
+
+                                @for (int i = 0; i < grupeCvorova.Count; i++)
+                                {
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; margin-bottom: 4px;">Grupa @(i + 1):</p>
+                                        <div class="visited-nodes">
+                                            @foreach (var cvor in grupeCvorova[i].OrderBy(c => c.naziv))
+                                            {
+                                                <span class="node-badge">@cvor.naziv</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (odabraniAlgoritam == "dajkstra" && dajkstraRezultati.Any())
+                        {
+                            <div class="result-box">
+                                <h4>Rezultat:</h4>
+                                <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
+                                
+                                <div class="dajkstra-results">
+                                    @foreach (DajkstraRezultat rezultat in dajkstraRezultati)
+                                    {
+                                        <div class="dajkstra-result-card">
+                                            <div class="dajkstra-result-header">
+                                                <span class="dajkstra-target-node">Do čvora @rezultat.cvor:</span>
+                                                <span class="dajkstra-distance-badge">@rezultat.udaljenost</span>
+                                            </div>
+                                            <div class="dajkstra-path">
+                                                Put: @rezultat.put
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+
+                    @if (graf.cvorovi.Count == 0)
+                    {
+                        <div class="alert-box">
+                            Morate prvo kreirati graf da biste primenili algoritme
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    Graf graf = new Graf();
+    bool tezinskiGraf = false;
+    bool usmerenGraf = false;
+    string granaInput = "";
+    double tezinaInput = 1.0;
+    string activeTab = "unos";
+    string odabraniAlgoritam = "";
+    bool dropdown = false;
+    bool zaRenderovanje = false;
+    bool prikaziPodesavanja = false;
+
+    string bojaCvora = "#97C2FC";
+    string bojaGrane = "#2B7CE9";
+    int velicinaCvora = 16;
+    bool zakljucanoPomeranje = false;
+    bool cuvajPoziciju = false;
+
+    string tempBojaCvora = "#97C2FC";
+    string tempBojaGrane = "#2B7CE9";
+    int tempVelicinaCvora = 16;
+    bool tempZakljucanoPomeranje = false;
+    bool tempCuvajPoziciju = false;
+    bool prikaziRezultat = false;
+
+    bool rezultatJePovezan = false;
+    List<List<GrafCvor>> grupeCvorova = new List<List<GrafCvor>>();
+
+    List<DajkstraRezultat> dajkstraRezultati = new List<DajkstraRezultat>();
+    string pocetniCvorDajkstra = "";
+    bool dropdownPocetniCvor = false;
+
+    protected override void OnInitialized()
+    {
+        // Prazan graf na pocetku
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (zaRenderovanje)
+        {
+            zaRenderovanje = false;
+            if (graf.cvorovi.Count > 0)
+            {
+                await RenderGraf();
+            }
+        }
+    }
+
+    async Task DodajGranu()
+    {
+        if (string.IsNullOrWhiteSpace(granaInput) || (granaInput.Length < 2 && granaInput.Length != 1) || granaInput.Length > 2)
+        {
+            granaInput = "";
+            return;
+        }
+
+        if (granaInput.Length == 1)
+        {
+            string cvor = granaInput[0].ToString().ToUpper();
+            graf.DodajJedanCvor(cvor);
+            granaInput = "";
+            tezinaInput = 1.0;
+            zaRenderovanje = true;
+            return;
+        }
+
+        string pocetniNaziv = granaInput[0].ToString().ToUpper();
+        string krajnjiNaziv = granaInput[1].ToString().ToUpper();
+
+        graf.Dodaj(pocetniNaziv, krajnjiNaziv, tezinaInput, usmerenGraf);
+
+        granaInput = "";
+        tezinaInput = 1.0;
+        zaRenderovanje = true;
+    }
+
+    async Task ObrisiSve()
+    {
+        graf.cvorovi.Clear();
+        graf.grane.Clear();
+        await ObrisiGraf();
+        ResetSettings();
+    }
+
+    async Task ObrisiGraf()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("clearGraph", "graphCanvas");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing graph: {ex.Message}");
+        }
+    }
+
+    async Task ObrisiCvor(GrafCvor cvor)
+    {
+        graf.ObrisiCvor(cvor);
+        zaRenderovanje = true;
+    }
+
+    async Task ObrisiGranu(GrafGrana grana)
+    {
+        graf.ObrisiGranu(grana);
+        zaRenderovanje = true;
+    }
+
+    void ToggleDropdown()
+    {
+        dropdown = !dropdown;
+    }
+
+    void ToggleDropdownPocetniCvor()
+    {
+        dropdownPocetniCvor = !dropdownPocetniCvor;
+    }
+
+    void SelectAlgorithm(string algoritam)
+    {
+        odabraniAlgoritam = algoritam;
+        dropdown = false;
+        prikaziRezultat = false;
+    }
+
+    void SelectPocetniCvor(string cvor)
+    {
+        pocetniCvorDajkstra = cvor;
+        dropdownPocetniCvor = false;
+    }
+
+    string GetAlgoritamNaziv(string algoritam)
+    {
+        return algoritam switch
+        {
+            "povezanost" => "Provera povezanosti",
+            "dajkstra" => "Dajkstra",
+            "kruskal" => "Kruskal",
+            _ => "Izaberite algoritam"
+        };
+    }
+
+    void PokreniAlgoritam()
+    {
+        if (graf.cvorovi.Count == 0)
+        {
+            return;
+        }
+        
+        prikaziRezultat = false;
+
+        if (odabraniAlgoritam == "povezanost")
+        {
+            RezultatPovezanosti? rezultat = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
+            
+            prikaziRezultat = true;
+            rezultatJePovezan = rezultat.jePovezan;
+            grupeCvorova = rezultat.cvoroviUGrupi;
+        }
+        else if (odabraniAlgoritam == "dajkstra")
+        {
+            if (string.IsNullOrEmpty(pocetniCvorDajkstra))
+            {
+                JS.InvokeVoidAsync("alert", "Izaberite početni čvor.");
+                return;
+            }
+
+            RezultatPovezanosti? rezultat = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
+            
+            if(!rezultat.jePovezan)
+            {
+                odabraniAlgoritam = "povezanost";
+                prikaziRezultat = true;
+                rezultatJePovezan = rezultat.jePovezan;
+                grupeCvorova = rezultat.cvoroviUGrupi;
+            }
+
+            GrafCvor? pocetni = graf.cvorovi.FirstOrDefault(c => c.naziv == pocetniCvorDajkstra);
+            if (pocetni != null)
+            {
+                ///*Lista
+                var alg = new GrafAlgoritamDajkstra();
+                
+                dajkstraRezultati = alg.DajkstraLista(graf, pocetni);
+                
+                prikaziRezultat = true;
+                //*/
+                
+                /* Matrica
+                var alg = new GrafAlgoritamDajkstra();
+
+                dajkstraRezultati = alg.DajkstraMatrica(graf, pocetni);
+
+                prikaziRezultat = true;
+                */
+            }
+        }
+        else if (odabraniAlgoritam == "kruskal")
+        {
+            JS.InvokeVoidAsync("alert", "Ovaj algoritam jos nije napravljen.");
+        }
+    }
+
+    async Task ExportujGraf()
+    {
+        try
+        {
+            graf.usmeren = usmerenGraf;
+            graf.tezinski = tezinskiGraf;
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(graf, options);
+            await JS.InvokeVoidAsync("downloadFile", "graf.json", json);
+        }
+        catch (Exception)
+        {
+            await JS.InvokeVoidAsync("alert", "Došlo je do greške prilikom eksportovanja grafa.");
+        }
+    }
+
+    async Task ImportujGraf(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null)
+                return;
+
+            var stream = file.OpenReadStream();
+            var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+
+            var importovaniGraf = System.Text.Json.JsonSerializer.Deserialize<Graf>(json);
+
+            if (importovaniGraf != null)
+            {
+                foreach (var grana in importovaniGraf.grane)
+                {
+                    var pocetni = importovaniGraf.cvorovi.FirstOrDefault(c => c.ID == grana.pocetniCvor.ID);
+                    var krajnji = importovaniGraf.cvorovi.FirstOrDefault(c => c.ID == grana.krajnjiCvor.ID);
+
+                    if (pocetni != null) grana.pocetniCvor = pocetni;
+                    if (krajnji != null) grana.krajnjiCvor = krajnji;
+                }
+
+                graf = importovaniGraf;
+
+                usmerenGraf = graf.usmeren;
+                tezinskiGraf = graf.tezinski;
+
+                await JS.InvokeVoidAsync("alert", "Graf je uspešno importovan!");
+                zaRenderovanje = true;
+            }
+        }
+        catch (Exception)
+        {
+            await JS.InvokeVoidAsync("alert", "Došlo je do greške prilikom importovanja grafa.");
+        }
+        await Task.CompletedTask;
+    }
+
+    async Task RenderGraf()
+    {
+        try
+        {
+            await Task.Delay(50);
+            var settings = new
+            {
+                bojaCvora,
+                bojaGrane,
+                velicinaCvora,
+                zakljucanoPomeranje,
+                cuvajPoziciju
+            };
+            await JS.InvokeVoidAsync("renderGraph", "graphCanvas", graf.cvorovi, graf.grane, usmerenGraf, tezinskiGraf, settings);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering graph: {ex.Message}");
+        }
+    }
+
+    void RefreshGraf()
+    {
+        ResetSettings();
+        zaRenderovanje = true;
+    }
+
+    void ToggleSettings()
+    {
+        if (!prikaziPodesavanja)
+        {
+            LoadTempSettings();
+            prikaziPodesavanja = true;
+        }
+        else
+        {
+            prikaziPodesavanja = false;
+        }
+    }
+
+    void LoadTempSettings()
+    {
+        tempBojaCvora = bojaCvora;
+        tempBojaGrane = bojaGrane;
+        tempVelicinaCvora = velicinaCvora;
+        tempZakljucanoPomeranje = zakljucanoPomeranje;
+        tempCuvajPoziciju = cuvajPoziciju;
+    }
+
+    async Task ApplySettings()
+    {
+        bojaCvora = tempBojaCvora;
+        bojaGrane = tempBojaGrane;
+        velicinaCvora = tempVelicinaCvora;
+        zakljucanoPomeranje = tempZakljucanoPomeranje;
+        cuvajPoziciju = tempCuvajPoziciju;
+
+        prikaziPodesavanja = false;
+
+        if (graf.cvorovi.Count > 0)
+        {
+            await RenderGraf();
+        }
+    }
+
+    void ResetSettings()
+    {
+        bojaCvora = "#97C2FC";
+        bojaGrane = "#2B7CE9";
+        velicinaCvora = 16;
+        zakljucanoPomeranje = false;
+        cuvajPoziciju = false;
+
+        LoadTempSettings();
+    }
+
+    async Task OnTezinskiGrafChanged(ChangeEventArgs args)
+    {
+        var newValue = args.Value is bool checkedValue && checkedValue;
+        if (tezinskiGraf == newValue)
+        {
+            return;
+        }
+
+        tezinskiGraf = newValue;
+        graf.tezinski = newValue;
+
+        if (graf.cvorovi.Count == 0)
+        {
+            zaRenderovanje = true;
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("updateEdgeLabels", "graphCanvas", graf.grane, newValue);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating edge labels: {ex.Message}");
+            zaRenderovanje = true;
+        }
+    }
+
+    async Task AzurirajTezinu(GrafGrana grana)
+    {
+        if (tezinskiGraf)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("updateEdgeLabels", "graphCanvas", new[] { grana }, true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating single edge label: {ex.Message}");
+            }
+        }
+    }
+}

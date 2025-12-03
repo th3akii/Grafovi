@@ -1,5 +1,6 @@
 # Grafovi
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Netlify Status](https://img.shields.io/netlify/01f9121c-f21a-41d1-92a1-465eee06aff4?style=flat-square&label=Netlify&logo=netlify)](https://grafovi.netlify.app/)
 
 C#/JavaScript projekat za vizualizaciju i algoritme nad grafovima.
 

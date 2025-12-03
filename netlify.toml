@@ -1,0 +1,11 @@
+[build]
+  command = "wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh && chmod +x ./dotnet-install.sh && ./dotnet-install.sh --channel 9.0 && export DOTNET_ROOT=$HOME/.dotnet && export PATH=$DOTNET_ROOT:$PATH && dotnet publish Grafovi/Grafovi.csproj -c Release -o release"
+  publish = "release/wwwroot"
+
+[build.environment]
+  DOTNET_VERSION = "9.0"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

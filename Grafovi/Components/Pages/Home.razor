@@ -1,10 +1,12 @@
 ﻿@page "/"
-@rendermode InteractiveServer
 @using Grafovi.Models
 @using System.Threading.Tasks
 @using System.Xml.Serialization
 @using Grafovi.Models.Algoritmi
+@using Grafovi.Services
 @inject IJSRuntime JS
+@inject GraphStateService GraphState
+@inject NavigationManager Navigation
 
 <PageTitle>Grafovi</PageTitle>
 
@@ -36,48 +38,6 @@
             }
         </div>
     </div>
-
-    <!-- Settings -->
-    @if (prikaziPodesavanja)
-    {
-        <div class="modal-backdrop">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>Podešavanja Vizualizacije</h3>
-                    <button @onclick="ToggleSettings" class="close-btn">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group">
-                        <label>Boja čvorova</label>
-                        <input type="color" @bind="tempBojaCvora" class="color-picker" />
-                    </div>
-                    <div class="input-group">
-                        <label>Boja grana</label>
-                        <input type="color" @bind="tempBojaGrane" class="color-picker" />
-                    </div>
-                    <div class="input-group">
-                        <label>Veličina čvorova (@tempVelicinaCvora)</label>
-                        <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
-                    </div>
-                    <div class="input-group-inline">
-                        <label>
-                            <span>Zadrži pozicije (ne resetuj graf)</span>
-                            <input type="checkbox" @bind="tempCuvajPoziciju" class="toggle-switch" />
-                        </label>
-                    </div>
-                    <div class="input-group-inline">
-                        <label>
-                            <span>Zaključaj pomeranje</span>
-                            <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button @onclick="ApplySettings" class="btn btn-primary">Primeni</button>
-                </div>
-            </div>
-        </div>
-    }
 
     <!-- Desni Panel -->
     <div class="control-panel" style="@(activeTab == "algoritmi" ? "min-height: 350px;" : "")">
@@ -247,42 +207,92 @@
                         </div>
                     </div>
 
+                    @if (odabraniAlgoritam == "dajkstra")
+                    {
+                        <div class="input-group">
+                            <label>Početni čvor</label>
+                            <div class="custom-select-container">
+                                <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni čvor" : $"Čvor {pocetniCvorDajkstra}")</span>
+                                    <span class="arrow">▼</span>
+                                </div>
+                                @if (dropdownPocetniCvor)
+                                {
+                                    <div class="custom-options">
+                                        @foreach (var cvor in graf.cvorovi)
+                                        {
+                                            <div class="custom-option @(pocetniCvorDajkstra == cvor.naziv ? "selected" : "")" 
+                                                 @onclick='() => SelectPocetniCvor(cvor.naziv)'>
+                                                Čvor @cvor.naziv
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
                     <div style="margin-top: 16px;">
                         <button @onclick="PokreniAlgoritam" class="btn btn-primary" style="width: 100%;">Pokreni algoritam</button>
                     </div>
 
-                    @if (prikaziRezultat && odabraniAlgoritam == "povezanost")
+                    @if (prikaziRezultat)
                     {
-                        <div class="result-box">
-                            <h4>Rezultat:</h4>
-                            @if (rezultatJePovezan)
-                            {
-                                <div class="result-success">
-                                    <span class="icon">✅</span>
-                                    <span>Graf je povezan</span>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="result-error">
-                                    <span class="icon">❌</span>
-                                    <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
-                                </div>
-                            }
-
-                            @for (int i = 0; i < grupeCvorova.Count; i++)
-                            {
-                                <div style="margin-bottom: 12px;">
-                                    <p style="font-weight: 600; margin-bottom: 4px;">Grupa @(i + 1):</p>
-                                    <div class="visited-nodes">
-                                        @foreach (var cvor in grupeCvorova[i].OrderBy(c => c.naziv))
-                                        {
-                                            <span class="node-badge">@cvor.naziv</span>
-                                        }
+                        @if (odabraniAlgoritam == "povezanost")
+                        {
+                            <div class="result-box">
+                                <h4>Rezultat:</h4>
+                                @if (rezultatJePovezan)
+                                {
+                                    <div class="result-success">
+                                        <span class="icon">✅</span>
+                                        <span>Graf je povezan</span>
                                     </div>
+                                }
+                                else
+                                {
+                                    <div class="result-error">
+                                        <span class="icon">❌</span>
+                                        <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
+                                    </div>
+                                }
+
+                                @for (int i = 0; i < grupeCvorova.Count; i++)
+                                {
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; margin-bottom: 4px;">Grupa @(i + 1):</p>
+                                        <div class="visited-nodes">
+                                            @foreach (var cvor in grupeCvorova[i].OrderBy(c => c.naziv))
+                                            {
+                                                <span class="node-badge">@cvor.naziv</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (odabraniAlgoritam == "dajkstra" && dajkstraRezultati.Any())
+                        {
+                            <div class="result-box">
+                                <h4>Rezultat:</h4>
+                                <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
+                                
+                                <div class="dajkstra-results">
+                                    @foreach (DajkstraRezultat rezultat in dajkstraRezultati)
+                                    {
+                                        <div class="dajkstra-result-card">
+                                            <div class="dajkstra-result-header">
+                                                <span class="dajkstra-target-node">Do čvora @rezultat.cvor:</span>
+                                                <span class="dajkstra-distance-badge">@rezultat.udaljenost</span>
+                                            </div>
+                                            <div class="dajkstra-path">
+                                                Put: @rezultat.put
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
-                            }
-                        </div>
+                            </div>
+                        }
                     }
 
                     @if (graf.cvorovi.Count == 0)
@@ -297,38 +307,104 @@
     </div>
 </div>
 
+
+
+<!-- Settings Modal -->
+@if (prikaziPodesavanja)
+{
+    <div class="modal-backdrop">
+        <div class="settings-modal">
+            <div class="modal-header">
+                <h3>Podešavanja Vizualizacije</h3>
+                <button @onclick="ToggleSettings" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Boja čvorova</label>
+                    <input type="color" @bind="tempBojaCvora" class="color-picker" />
+                </div>
+                <div class="input-group">
+                    <label>Boja grana</label>
+                    <input type="color" @bind="tempBojaGrane" class="color-picker" />
+                </div>
+                <div class="input-group">
+                    <label>Veličina čvorova (@tempVelicinaCvora)</label>
+                    <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
+                </div>
+                <div class="input-group-inline">
+                    <label>
+                        <span>Zadrži pozicije (ne resetuj graf)</span>
+                        <input type="checkbox" @bind="tempCuvajPoziciju" class="toggle-switch" />
+                    </label>
+                </div>
+                <div class="input-group-inline">
+                    <label>
+                        <span>Zaključaj pomeranje</span>
+                        <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @onclick="ApplySettings" class="btn btn-primary">Primeni</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    Graf graf = new Graf();
-    bool tezinskiGraf = false;
-    bool usmerenGraf = false;
+    Graf graf 
+    {
+        get => GraphState.Graf;
+        set => GraphState.Graf = value;
+    }
+    
+    bool tezinskiGraf 
+    {
+        get => GraphState.TezinskiGraf;
+        set => GraphState.TezinskiGraf = value;
+    }
+    
+    bool usmerenGraf 
+    {
+        get => GraphState.UsmerenGraf;
+        set => GraphState.UsmerenGraf = value;
+    }
+
     string granaInput = "";
     double tezinaInput = 1.0;
     string activeTab = "unos";
     string odabraniAlgoritam = "";
     bool dropdown = false;
     bool zaRenderovanje = false;
+
     bool prikaziPodesavanja = false;
-
-    string bojaCvora = "#97C2FC";
-    string bojaGrane = "#2B7CE9";
-    int velicinaCvora = 16;
-    bool zakljucanoPomeranje = false;
-    bool cuvajPoziciju = false;
-
     string tempBojaCvora = "#97C2FC";
     string tempBojaGrane = "#2B7CE9";
     int tempVelicinaCvora = 16;
     bool tempZakljucanoPomeranje = false;
     bool tempCuvajPoziciju = false;
 
-    // Rezultat algoritma
+    string bojaCvora => GraphState.BojaCvora;
+    string bojaGrane => GraphState.BojaGrane;
+    int velicinaCvora => GraphState.VelicinaCvora;
+    bool zakljucanoPomeranje => GraphState.ZakljucanoPomeranje;
+    bool cuvajPoziciju => GraphState.CuvajPoziciju;
+
     bool prikaziRezultat = false;
+
     bool rezultatJePovezan = false;
     List<List<GrafCvor>> grupeCvorova = new List<List<GrafCvor>>();
 
+    List<DajkstraRezultat> dajkstraRezultati = new List<DajkstraRezultat>();
+    string pocetniCvorDajkstra = "";
+    bool dropdownPocetniCvor = false;
+
     protected override void OnInitialized()
     {
-        // Prazan graf na pocetku
+        if (graf.cvorovi.Count > 0)
+        {
+            zaRenderovanje = true;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -408,10 +484,22 @@
         dropdown = !dropdown;
     }
 
+    void ToggleDropdownPocetniCvor()
+    {
+        dropdownPocetniCvor = !dropdownPocetniCvor;
+    }
+
     void SelectAlgorithm(string algoritam)
     {
         odabraniAlgoritam = algoritam;
         dropdown = false;
+        prikaziRezultat = false;
+    }
+
+    void SelectPocetniCvor(string cvor)
+    {
+        pocetniCvorDajkstra = cvor;
+        dropdownPocetniCvor = false;
     }
 
     string GetAlgoritamNaziv(string algoritam)
@@ -431,6 +519,9 @@
         {
             return;
         }
+        
+        prikaziRezultat = false;
+
         if (odabraniAlgoritam == "povezanost")
         {
             RezultatPovezanosti? rezultat = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
@@ -439,7 +530,45 @@
             rezultatJePovezan = rezultat.jePovezan;
             grupeCvorova = rezultat.cvoroviUGrupi;
         }
-        else
+        else if (odabraniAlgoritam == "dajkstra")
+        {
+            if (string.IsNullOrEmpty(pocetniCvorDajkstra))
+            {
+                JS.InvokeVoidAsync("alert", "Izaberite početni čvor.");
+                return;
+            }
+
+            RezultatPovezanosti? rezultat = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
+            
+            if(!rezultat.jePovezan)
+            {
+                odabraniAlgoritam = "povezanost";
+                prikaziRezultat = true;
+                rezultatJePovezan = rezultat.jePovezan;
+                grupeCvorova = rezultat.cvoroviUGrupi;
+            }
+
+            GrafCvor? pocetni = graf.cvorovi.FirstOrDefault(c => c.naziv == pocetniCvorDajkstra);
+            if (pocetni != null)
+            {
+                ///*Lista
+                var alg = new GrafAlgoritamDajkstra();
+                
+                dajkstraRezultati = alg.DajkstraLista(graf, pocetni);
+                
+                prikaziRezultat = true;
+                //*/
+                
+                /* Matrica
+                var alg = new GrafAlgoritamDajkstra();
+
+                dajkstraRezultati = alg.DajkstraMatrica(graf, pocetni);
+
+                prikaziRezultat = true;
+                */
+            }
+        }
+        else if (odabraniAlgoritam == "kruskal")
         {
             JS.InvokeVoidAsync("alert", "Ovaj algoritam jos nije napravljen.");
         }
@@ -548,20 +677,20 @@
 
     void LoadTempSettings()
     {
-        tempBojaCvora = bojaCvora;
-        tempBojaGrane = bojaGrane;
-        tempVelicinaCvora = velicinaCvora;
-        tempZakljucanoPomeranje = zakljucanoPomeranje;
-        tempCuvajPoziciju = cuvajPoziciju;
+        tempBojaCvora = GraphState.BojaCvora;
+        tempBojaGrane = GraphState.BojaGrane;
+        tempVelicinaCvora = GraphState.VelicinaCvora;
+        tempZakljucanoPomeranje = GraphState.ZakljucanoPomeranje;
+        tempCuvajPoziciju = GraphState.CuvajPoziciju;
     }
 
     async Task ApplySettings()
     {
-        bojaCvora = tempBojaCvora;
-        bojaGrane = tempBojaGrane;
-        velicinaCvora = tempVelicinaCvora;
-        zakljucanoPomeranje = tempZakljucanoPomeranje;
-        cuvajPoziciju = tempCuvajPoziciju;
+        GraphState.BojaCvora = tempBojaCvora;
+        GraphState.BojaGrane = tempBojaGrane;
+        GraphState.VelicinaCvora = tempVelicinaCvora;
+        GraphState.ZakljucanoPomeranje = tempZakljucanoPomeranje;
+        GraphState.CuvajPoziciju = tempCuvajPoziciju;
 
         prikaziPodesavanja = false;
 
@@ -573,12 +702,7 @@
 
     void ResetSettings()
     {
-        bojaCvora = "#97C2FC";
-        bojaGrane = "#2B7CE9";
-        velicinaCvora = 16;
-        zakljucanoPomeranje = false;
-        cuvajPoziciju = false;
-
+        GraphState.ResetSettings();
         LoadTempSettings();
     }
 

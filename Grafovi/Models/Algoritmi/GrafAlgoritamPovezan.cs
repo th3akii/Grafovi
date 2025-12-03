@@ -51,11 +51,11 @@ namespace Grafovi.Models.Algoritmi
 
                         foreach (var sused in susedi)
                         {
-                            if (poseceni.ContainsKey(sused.ID) && poseceni[sused.ID] == 0)
+                            if (poseceni.ContainsKey(sused.cvor.ID) && poseceni[sused.cvor.ID] == 0)
                             {
-                                poseceni[sused.ID] = brGrupe;
-                                trenutnaGrupa.Add(sused);
-                                stek.Push(sused);
+                                poseceni[sused.cvor.ID] = brGrupe;
+                                trenutnaGrupa.Add(sused.cvor);
+                                stek.Push(sused.cvor);
                             }
                         }
                     }
@@ -104,7 +104,7 @@ namespace Grafovi.Models.Algoritmi
                         
                         foreach (var susedniCvor in graf.cvorovi)
                         {
-                            if (matricaPovezanosti.PostojiGrana(trenutni, susedniCvor) && 
+                            if (matricaPovezanosti.PostojiGrana(graf, trenutni, susedniCvor) && 
                                 poseceni.ContainsKey(susedniCvor.ID) && 
                                 poseceni[susedniCvor.ID] == 0)
                             {

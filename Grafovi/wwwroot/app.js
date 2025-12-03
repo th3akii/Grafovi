@@ -12,7 +12,10 @@ function downloadFile(filename, content) {
 var networkInstances = {};
 
 function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, settings) {
-    console.log("renderGraph called", { containerId, nodesData, edgesData, isDirected, isWeighted, settings });
+    console.log("=== renderGraph START ===");
+    console.log("Settings received:", settings);
+    console.log("preservePositions value:", settings?.preservePositions);
+    console.log("networkInstances[containerId] exists:", !!networkInstances[containerId]);
 
     if (typeof vis === 'undefined') {
         console.error("vis.js library is not loaded.");
@@ -27,13 +30,15 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
     }
     
     try {
-        // Normalize settings regardless of property naming
+        // Normalize settings - support both Serbian and English property names
         settings = settings || {};
-        var nodeColor = settings.bojaCvora ?? settings.nodeColor ?? '#97C2FC';
-        var edgeColor = settings.bojaGrane ?? settings.edgeColor ?? '#2B7CE9';
-        var nodeSize = settings.velicinaCvora ?? settings.nodeSize ?? 16;
-        var lockMovement = settings.zakljucanoPomeranje ?? settings.lockMovement ?? false;
-        var preservePositions = settings.cuvajPoziciju ?? settings.preservePositions ?? false;
+        var nodeColor = settings.nodeColor ?? settings.bojaCvora ?? '#97C2FC';
+        var edgeColor = settings.edgeColor ?? settings.bojaGrane ?? '#2B7CE9';
+        var nodeSize = settings.nodeSize ?? settings.velicinaCvora ?? 16;
+        var lockMovement = settings.lockMovement ?? settings.zakljucanoPomeranje ?? false;
+        var preservePositions = settings.preservePositions ?? settings.cuvajPoziciju ?? false;
+
+        console.log('Parsed settings:', { nodeColor, edgeColor, nodeSize, lockMovement, preservePositions });
 
         // Prepare data arrays
         var nodesArray = nodesData.map((n, index) => {
@@ -337,4 +342,211 @@ function buildNodeBoundingBoxes(instance) {
         console.warn('Unable to compute bounding boxes:', error);
     }
     return boundingBoxes;
+}
+
+// Settings Modal Management
+var settingsModalElement = null;
+var currentSettings = {
+    bojaCvora: '#97C2FC',
+    bojaGrane: '#2B7CE9',
+    velicinaCvora: 16,
+    cuvajPoziciju: false,
+    zakljucanoPomeranje: false
+};
+
+function showSettingsModal(bojaCvora, bojaGrane, velicinaCvora, cuvajPoziciju, zakljucanoPomeranje) {
+    console.log('showSettingsModal called', { bojaCvora, bojaGrane, velicinaCvora, cuvajPoziciju, zakljucanoPomeranje });
+    
+    // Store current settings
+    currentSettings = {
+        bojaCvora: bojaCvora || '#97C2FC',
+        bojaGrane: bojaGrane || '#2B7CE9',
+        velicinaCvora: velicinaCvora || 16,
+        cuvajPoziciju: cuvajPoziciju || false,
+        zakljucanoPomeranje: zakljucanoPomeranje || false
+    };
+
+    // Remove existing modal if any
+    if (settingsModalElement) {
+        document.body.removeChild(settingsModalElement);
+    }
+
+    // Create modal HTML
+    var modalHTML = `
+        <div class="modal-backdrop" id="settingsModalBackdrop" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        ">
+            <div class="modal" onclick="event.stopPropagation()" style="
+                background: white;
+                border-radius: 12px;
+                width: 400px;
+                max-width: 90vw;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                overflow: hidden;
+            ">
+                <div class="modal-header" style="
+                    padding: 16px 20px;
+                    border-bottom: 1px solid #e5e7eb;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                ">
+                    <h3 style="margin: 0; font-size: 18px; color: #1f2937;">Podešavanja Vizualizacije</h3>
+                    <button onclick="window.closeSettingsModal()" class="close-btn" style="
+                        background: none;
+                        border: none;
+                        font-size: 24px;
+                        color: #9ca3af;
+                        cursor: pointer;
+                        padding: 0;
+                        line-height: 1;
+                    ">×</button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div class="input-group" style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px;">Boja čvorova</label>
+                        <input type="color" id="bojaCvoraInput" value="${currentSettings.bojaCvora}" style="
+                            width: 100%;
+                            height: 40px;
+                            padding: 2px;
+                            border: 1px solid #d1d5db;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        " />
+                    </div>
+                    <div class="input-group" style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px;">Boja grana</label>
+                        <input type="color" id="bojaGraneInput" value="${currentSettings.bojaGrane}" style="
+                            width: 100%;
+                            height: 40px;
+                            padding: 2px;
+                            border: 1px solid #d1d5db;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        " />
+                    </div>
+                    <div class="input-group" style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px;">Veličina čvorova (<span id="velicinaCvoraValue">${currentSettings.velicinaCvora}</span>)</label>
+                        <input type="range" id="velicinaCvoraInput" value="${currentSettings.velicinaCvora}" min="10" max="50" 
+                            oninput="document.getElementById('velicinaCvoraValue').textContent = this.value"
+                            style="width: 100%; margin-top: 8px;" />
+                    </div>
+                    <div class="input-group-inline" style="margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: #374151; cursor: pointer;">
+                            <span>Zadrži pozicije (ne resetuj graf)</span>
+                            <input type="checkbox" id="cuvajPozicijuInput" ${currentSettings.cuvajPoziciju ? 'checked' : ''} style="
+                                width: 18px;
+                                height: 18px;
+                                cursor: pointer;
+                                margin: 0;
+                            " />
+                        </label>
+                    </div>
+                    <div class="input-group-inline" style="margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: #374151; cursor: pointer;">
+                            <span>Zaključaj pomeranje</span>
+                            <input type="checkbox" id="zakljucanoPomeranjeInput" ${currentSettings.zakljucanoPomeranje ? 'checked' : ''} style="
+                                width: 18px;
+                                height: 18px;
+                                cursor: pointer;
+                                margin: 0;
+                            " />
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="
+                    padding: 16px 20px;
+                    background: #f9fafb;
+                    border-top: 1px solid #e5e7eb;
+                    display: flex;
+                    justify-content: flex-end;
+                ">
+                    <button onclick="window.applySettingsFromModal()" style="
+                        padding: 10px 16px;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        background: #000;
+                        color: white;
+                    ">Primeni</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Create element
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = modalHTML;
+    settingsModalElement = tempDiv.firstElementChild;
+    
+    // Add click handler to backdrop
+    settingsModalElement.addEventListener('click', function() {
+        window.closeSettingsModal();
+    });
+
+    // Append to body
+    document.body.appendChild(settingsModalElement);
+}
+
+function hideSettingsModal() {
+    console.log('hideSettingsModal called');
+    if (settingsModalElement && settingsModalElement.parentNode) {
+        document.body.removeChild(settingsModalElement);
+        settingsModalElement = null;
+    }
+}
+
+function getSettingsData() {
+    if (!settingsModalElement) {
+        return currentSettings;
+    }
+
+    return {
+        bojaCvora: document.getElementById('bojaCvoraInput')?.value || currentSettings.bojaCvora,
+        bojaGrane: document.getElementById('bojaGraneInput')?.value || currentSettings.bojaGrane,
+        velicinaCvora: parseInt(document.getElementById('velicinaCvoraInput')?.value) || currentSettings.velicinaCvora,
+        cuvajPoziciju: document.getElementById('cuvajPozicijuInput')?.checked || false,
+        zakljucanoPomeranje: document.getElementById('zakljucanoPomeranjeInput')?.checked || false
+    };
+}
+
+// Global functions for modal
+window.closeSettingsModal = function() {
+    hideSettingsModal();
+    // Notify Blazor that modal was closed
+    if (window.DotNet) {
+        // We'll handle this in Blazor
+    }
+};
+
+window.applySettingsFromModal = function() {
+    var settings = getSettingsData();
+    console.log('Applying settings:', settings);
+    
+    // Update current settings
+    currentSettings = settings;
+    
+    // Close modal
+    hideSettingsModal();
+    
+    // Trigger Blazor callback
+    if (window.blazorSettingsCallback) {
+        window.blazorSettingsCallback.invokeMethodAsync('ApplySettingsFromModal');
+    }
+};
+
+function registerBlazorCallback(dotNetObject) {
+    window.blazorSettingsCallback = dotNetObject;
+    console.log('Blazor callback registered');
 }

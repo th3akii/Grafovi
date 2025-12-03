@@ -48,20 +48,39 @@ namespace Grafovi.Models.Obrada
             return matricaPovezanosti;
         }
 
-        public bool PostojiGrana(GrafCvor izCvor, GrafCvor uCvor)
+        public bool PostojiGrana(Graf graf, GrafCvor izCvor, GrafCvor uCvor)
         {
-            int i = izCvor.ID;
-            int j = uCvor.ID;
+            int i = graf.cvorovi.IndexOf(izCvor);
+            int j = graf.cvorovi.IndexOf(uCvor);
 
             return matrica[i, j] != 0;
         }
 
-        public double GetTezinaGrane(GrafCvor izCvor, GrafCvor uCvor)
+        public double GetTezinaGrane(Graf graf, GrafCvor izCvor, GrafCvor uCvor)
         {
-            int i = izCvor.ID;
-            int j = uCvor.ID;
+            int i = graf.cvorovi.IndexOf(izCvor);
+            int j = graf.cvorovi.IndexOf(uCvor);
 
             return matrica[i, j];
+        }
+
+        public List<Sused> GetSusedneCvorove(Graf graf, GrafCvor cvor)
+        {
+            var susedniCvorovi = new List<Sused>();
+            int i = graf.cvorovi.IndexOf(cvor);
+            
+            if (i == -1) return susedniCvorovi;
+
+            for (int j = 0; j < brojCvorova; j++)
+            {
+                if (matrica[i, j] != 0)
+                {
+                    var susedCvor = graf.cvorovi[j];
+                    susedniCvorovi.Add(new Sused(susedCvor, matrica[i, j]));
+                }
+            }
+
+            return susedniCvorovi;
         }
     }
 }

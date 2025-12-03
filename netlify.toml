@@ -1,0 +1,8 @@
+[build]
+  command = "dotnet publish Grafovi/Grafovi.csproj -c Release -o release"
+  publish = "release/wwwroot"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

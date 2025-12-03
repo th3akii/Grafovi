@@ -1,10 +1,12 @@
 ﻿@page "/"
-@rendermode InteractiveServer
 @using Grafovi.Models
 @using System.Threading.Tasks
 @using System.Xml.Serialization
 @using Grafovi.Models.Algoritmi
+@using Grafovi.Services
 @inject IJSRuntime JS
+@inject GraphStateService GraphState
+@inject NavigationManager Navigation
 
 <PageTitle>Grafovi</PageTitle>
 
@@ -36,48 +38,6 @@
             }
         </div>
     </div>
-
-    <!-- Settings -->
-    @if (prikaziPodesavanja)
-    {
-        <div class="modal-backdrop">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>Podešavanja Vizualizacije</h3>
-                    <button @onclick="ToggleSettings" class="close-btn">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group">
-                        <label>Boja čvorova</label>
-                        <input type="color" @bind="tempBojaCvora" class="color-picker" />
-                    </div>
-                    <div class="input-group">
-                        <label>Boja grana</label>
-                        <input type="color" @bind="tempBojaGrane" class="color-picker" />
-                    </div>
-                    <div class="input-group">
-                        <label>Veličina čvorova (@tempVelicinaCvora)</label>
-                        <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
-                    </div>
-                    <div class="input-group-inline">
-                        <label>
-                            <span>Zadrži pozicije (ne resetuj graf)</span>
-                            <input type="checkbox" @bind="tempCuvajPoziciju" class="toggle-switch" />
-                        </label>
-                    </div>
-                    <div class="input-group-inline">
-                        <label>
-                            <span>Zaključaj pomeranje</span>
-                            <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button @onclick="ApplySettings" class="btn btn-primary">Primeni</button>
-                </div>
-            </div>
-        </div>
-    }
 
     <!-- Desni Panel -->
     <div class="control-panel" style="@(activeTab == "algoritmi" ? "min-height: 350px;" : "")">
@@ -347,29 +307,89 @@
     </div>
 </div>
 
+
+
+<!-- Settings Modal -->
+@if (prikaziPodesavanja)
+{
+    <div class="modal-backdrop">
+        <div class="settings-modal">
+            <div class="modal-header">
+                <h3>Podešavanja Vizualizacije</h3>
+                <button @onclick="ToggleSettings" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Boja čvorova</label>
+                    <input type="color" @bind="tempBojaCvora" class="color-picker" />
+                </div>
+                <div class="input-group">
+                    <label>Boja grana</label>
+                    <input type="color" @bind="tempBojaGrane" class="color-picker" />
+                </div>
+                <div class="input-group">
+                    <label>Veličina čvorova (@tempVelicinaCvora)</label>
+                    <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
+                </div>
+                <div class="input-group-inline">
+                    <label>
+                        <span>Zadrži pozicije (ne resetuj graf)</span>
+                        <input type="checkbox" @bind="tempCuvajPoziciju" class="toggle-switch" />
+                    </label>
+                </div>
+                <div class="input-group-inline">
+                    <label>
+                        <span>Zaključaj pomeranje</span>
+                        <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @onclick="ApplySettings" class="btn btn-primary">Primeni</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    Graf graf = new Graf();
-    bool tezinskiGraf = false;
-    bool usmerenGraf = false;
+    Graf graf 
+    {
+        get => GraphState.Graf;
+        set => GraphState.Graf = value;
+    }
+    
+    bool tezinskiGraf 
+    {
+        get => GraphState.TezinskiGraf;
+        set => GraphState.TezinskiGraf = value;
+    }
+    
+    bool usmerenGraf 
+    {
+        get => GraphState.UsmerenGraf;
+        set => GraphState.UsmerenGraf = value;
+    }
+
     string granaInput = "";
     double tezinaInput = 1.0;
     string activeTab = "unos";
     string odabraniAlgoritam = "";
     bool dropdown = false;
     bool zaRenderovanje = false;
+
     bool prikaziPodesavanja = false;
-
-    string bojaCvora = "#97C2FC";
-    string bojaGrane = "#2B7CE9";
-    int velicinaCvora = 16;
-    bool zakljucanoPomeranje = false;
-    bool cuvajPoziciju = false;
-
     string tempBojaCvora = "#97C2FC";
     string tempBojaGrane = "#2B7CE9";
     int tempVelicinaCvora = 16;
     bool tempZakljucanoPomeranje = false;
     bool tempCuvajPoziciju = false;
+
+    string bojaCvora => GraphState.BojaCvora;
+    string bojaGrane => GraphState.BojaGrane;
+    int velicinaCvora => GraphState.VelicinaCvora;
+    bool zakljucanoPomeranje => GraphState.ZakljucanoPomeranje;
+    bool cuvajPoziciju => GraphState.CuvajPoziciju;
+
     bool prikaziRezultat = false;
 
     bool rezultatJePovezan = false;
@@ -381,7 +401,10 @@
 
     protected override void OnInitialized()
     {
-        // Prazan graf na pocetku
+        if (graf.cvorovi.Count > 0)
+        {
+            zaRenderovanje = true;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -654,20 +677,20 @@
 
     void LoadTempSettings()
     {
-        tempBojaCvora = bojaCvora;
-        tempBojaGrane = bojaGrane;
-        tempVelicinaCvora = velicinaCvora;
-        tempZakljucanoPomeranje = zakljucanoPomeranje;
-        tempCuvajPoziciju = cuvajPoziciju;
+        tempBojaCvora = GraphState.BojaCvora;
+        tempBojaGrane = GraphState.BojaGrane;
+        tempVelicinaCvora = GraphState.VelicinaCvora;
+        tempZakljucanoPomeranje = GraphState.ZakljucanoPomeranje;
+        tempCuvajPoziciju = GraphState.CuvajPoziciju;
     }
 
     async Task ApplySettings()
     {
-        bojaCvora = tempBojaCvora;
-        bojaGrane = tempBojaGrane;
-        velicinaCvora = tempVelicinaCvora;
-        zakljucanoPomeranje = tempZakljucanoPomeranje;
-        cuvajPoziciju = tempCuvajPoziciju;
+        GraphState.BojaCvora = tempBojaCvora;
+        GraphState.BojaGrane = tempBojaGrane;
+        GraphState.VelicinaCvora = tempVelicinaCvora;
+        GraphState.ZakljucanoPomeranje = tempZakljucanoPomeranje;
+        GraphState.CuvajPoziciju = tempCuvajPoziciju;
 
         prikaziPodesavanja = false;
 
@@ -679,12 +702,7 @@
 
     void ResetSettings()
     {
-        bojaCvora = "#97C2FC";
-        bojaGrane = "#2B7CE9";
-        velicinaCvora = 16;
-        zakljucanoPomeranje = false;
-        cuvajPoziciju = false;
-
+        GraphState.ResetSettings();
         LoadTempSettings();
     }
 

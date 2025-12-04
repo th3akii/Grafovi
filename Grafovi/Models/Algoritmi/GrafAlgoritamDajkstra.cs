@@ -86,6 +86,8 @@ namespace Grafovi.Models.Algoritmi
             put = new Dictionary<int, string>();
             var matricaSusedstva = MatricaPovezanosti.KreirajIzGrafa(graf);
 
+            var red = new PriorityQueue<GrafCvor, double>();
+
             foreach (var cvor in graf.cvorovi)
             {
                 distanca[cvor.ID] = double.MaxValue;
@@ -95,9 +97,15 @@ namespace Grafovi.Models.Algoritmi
 
             distanca[pocetniCvor.ID] = 0;
             put[pocetniCvor.ID] = pocetniCvor.naziv;
+            red.Enqueue(pocetniCvor, 0);
 
-            foreach (var cvor in graf.cvorovi)
+            while (red.Count > 0)
             {
+                var cvor = red.Dequeue();
+                if (obradjeni[cvor.ID] == 1)
+                    continue;
+                obradjeni[cvor.ID] = 1;
+
                 var susedniCvorovi = matricaSusedstva.GetSusedneCvorove(graf, cvor);
                 foreach (var sused in susedniCvorovi)
                 {
@@ -108,10 +116,10 @@ namespace Grafovi.Models.Algoritmi
                         {
                             distanca[sused.cvor.ID] = novaDistanca;
                             put[sused.cvor.ID] = put[cvor.ID] + " -> " + sused.cvor.naziv;
+                            red.Enqueue(sused.cvor, novaDistanca);
                         }
                     }
                 }
-                obradjeni[cvor.ID] = 1;
             }
 
             foreach (var cvor in graf.cvorovi)

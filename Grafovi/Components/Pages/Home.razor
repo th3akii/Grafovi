@@ -293,6 +293,13 @@
                                 </div>
                             </div>
                         }
+                        else if (odabraniAlgoritam == "kruskal")
+                        {
+                            <div class="result-box">
+                                <h4>Rezultat:</h4>
+                                <p>Kruskal je izvrsen</p>
+                            </div>
+                        }
                     }
 
                     @if (graf.cvorovi.Count == 0)
@@ -302,6 +309,7 @@
                         </div>
                     }
                 </div>
+
             }
         </div>
     </div>
@@ -389,7 +397,6 @@
     int velicinaCvora => GraphState.VelicinaCvora;
     bool zakljucanoPomeranje => GraphState.ZakljucanoPomeranje;
     bool cuvajPoziciju => GraphState.CuvajPoziciju;
-
     bool prikaziRezultat = false;
 
     bool rezultatJePovezan = false;
@@ -570,7 +577,14 @@
         }
         else if (odabraniAlgoritam == "kruskal")
         {
-            JS.InvokeVoidAsync("alert", "Ovaj algoritam jos nije napravljen.");
+            var alg = new GrafAlgoritamKruskal();
+            var rezultat = alg.KruskalAlgoritam(graf);
+
+            foreach (var grana in rezultat)
+            {
+                ObrisiGranu(grana);
+            }
+            prikaziRezultat = true;
         }
     }
 

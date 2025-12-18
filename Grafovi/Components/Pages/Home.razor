@@ -4,6 +4,7 @@
 @using System.Xml.Serialization
 @using Grafovi.Models.Algoritmi
 @using Grafovi.Services
+@using System.Runtime.InteropServices
 @inject IJSRuntime JS
 @inject GraphStateService GraphState
 @inject NavigationManager Navigation
@@ -202,6 +203,10 @@
                                          @onclick='() => SelectAlgorithm("kruskal")'>
                                         Kruskal
                                     </div>
+                                    <div class="custom-option @(odabraniAlgoritam == "prim" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("prim")'>
+                                        Prim
+                                    </div>
                                 </div>
                             }
                         </div>
@@ -297,8 +302,15 @@
                         {
                             <div class="result-box">
                                 <h4>Rezultat:</h4>
-                                <p>Kruskal je izvrsen</p>
+                                <p>@kruskalRezultat</p>
                             </div>
+                        }
+                        else if (odabraniAlgoritam == "prim")
+                        {
+                            <div class="result-box">
+                                <h4>Rezultat:</h4>
+                                <p>@primRezultat</p>
+                            </div> 
                         }
                     }
 
@@ -401,6 +413,8 @@
 
     bool rezultatJePovezan = false;
     List<List<GrafCvor>> grupeCvorova = new List<List<GrafCvor>>();
+    string kruskalRezultat = "";
+    string primRezultat = "";
 
     List<DajkstraRezultat> dajkstraRezultati = new List<DajkstraRezultat>();
     string pocetniCvorDajkstra = "";
@@ -516,6 +530,7 @@
             "povezanost" => "Provera povezanosti",
             "dajkstra" => "Dajkstra",
             "kruskal" => "Kruskal",
+            "prim" => "Prim",
             _ => "Izaberite algoritam"
         };
     }
@@ -584,7 +599,39 @@
             {
                 ObrisiGranu(grana);
             }
+            kruskalRezultat = "Kruskalov algoritam je uspešno izvršen.";
             prikaziRezultat = true;
+        }
+        else if (odabraniAlgoritam == "prim")
+        {
+            RezultatPovezanosti? rezultatPovezanosti = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
+            
+            if(!rezultatPovezanosti.jePovezan)
+            {
+                odabraniAlgoritam = "povezanost";
+                prikaziRezultat = true;
+                rezultatJePovezan = rezultatPovezanosti.jePovezan;
+                grupeCvorova = rezultatPovezanosti.cvoroviUGrupi;
+            }
+            else
+            {
+                if (!tezinskiGraf)
+                {
+                    primRezultat = "Primov algoritam zahteva težinski graf.";
+                    prikaziRezultat = true;
+                    return;
+                }
+
+                var alg = new GrafAlgoritamPrim();
+                var rezultat = alg.PrimovAlgoritam(graf);
+
+                foreach (var grana in rezultat)
+                {
+                    ObrisiGranu(grana);
+                }
+                primRezultat = "Primov algoritam je uspešno izvršen.";
+                prikaziRezultat = true;
+            }
         }
     }
 

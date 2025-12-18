@@ -172,7 +172,7 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                     width: 2,
                     shadow: true,
                     smooth: {
-                        type: 'continuous'
+                        type: 'dynamic'
                     },
                     font: {
                         align: 'top'

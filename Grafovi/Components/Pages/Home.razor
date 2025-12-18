@@ -671,6 +671,7 @@
 
             if (importovaniGraf != null)
             {
+                ObrisiSve();
                 foreach (var grana in importovaniGraf.grane)
                 {
                     var pocetni = importovaniGraf.cvorovi.FirstOrDefault(c => c.ID == grana.pocetniCvor.ID);

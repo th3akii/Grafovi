@@ -47,22 +47,15 @@ namespace Grafovi.Models
                 cvorovi.Add(krajnjiCvor);
             }
 
-            bool granaPostoji = grane.Any(g =>
-                (g.pocetniCvor == pocetniCvor && g.krajnjiCvor == krajnjiCvor) ||
-                (!usmerenGraf && g.pocetniCvor == krajnjiCvor && g.krajnjiCvor == pocetniCvor)
-            );
-            if (!granaPostoji)
+            string granaId = KreirajIDGrane(pocetniCvor, krajnjiCvor, usmerenGraf);
+            grane.Add(new GrafGrana
             {
-                string granaId = KreirajIDGrane(pocetniCvor, krajnjiCvor, usmerenGraf);
-                grane.Add(new GrafGrana
-                {
-                    ID = granaId,
-                    pocetniCvor = pocetniCvor,
-                    krajnjiCvor = krajnjiCvor,
-                    tezina = tezinaInput,
-                    usmerena = usmerenGraf
-                });
-            }
+                ID = granaId,
+                pocetniCvor = pocetniCvor,
+                krajnjiCvor = krajnjiCvor,
+                tezina = tezinaInput,
+                usmerena = usmerenGraf
+            });
 
             usmeren = usmerenGraf;
         }
@@ -79,12 +72,7 @@ namespace Grafovi.Models
 
         string KreirajIDGrane(GrafCvor pocetni, GrafCvor krajnji, bool usmerenGraf)
         {
-            if (pocetni == null || krajnji == null)
-            {
-                return Guid.NewGuid().ToString("N");
-            }
-
-            return $"{pocetni.naziv}{krajnji.naziv}";
+            return Guid.NewGuid().ToString("N");
         }
     }
 }

@@ -10,7 +10,6 @@ C#/JavaScript projekat za vizualizaciju i algoritme nad grafovima.
 - [Uputstvo za instalaciju i podešavanje](#uputstvo-za-instalaciju-i-podešavanje)
 - [Struktura projekta](#struktura-projekta)
 - [Važne C# klase](#važne-c-klase)
-- [TO-DO](#to-do)
 
 
 ## Osobine
@@ -85,7 +84,3 @@ Grafovi/
 
 *   **`GrafAlgoritamPovezan.cs`:** Algoritam za proveru povezanosti grafa.
     *   `JePovezan(Graf graf)`: Proverava da li je graf povezan.
-
-## TO-DO
-- Belman-Fordov algoritam
-- Primov algoritam

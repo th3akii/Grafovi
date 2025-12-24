@@ -422,6 +422,12 @@
                         <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
                     </label>
                 </div>
+                <div class="input-group-inline">
+                    <label>
+                        <span>Omogući menjanje grana</span>
+                        <input type="checkbox" @bind="tempOmoguciMenjanjeGrana" class="toggle-switch" />
+                    </label>
+                </div>
             </div>
             <div class="modal-footer">
                 <button @onclick="ApplySettings" class="btn btn-primary">Primeni</button>
@@ -462,12 +468,14 @@
     int tempVelicinaCvora = 16;
     bool tempZakljucanoPomeranje = false;
     bool tempCuvajPoziciju = false;
+    bool tempOmoguciMenjanjeGrana = false;
 
     string bojaCvora => GraphState.BojaCvora;
     string bojaGrane => GraphState.BojaGrane;
     int velicinaCvora => GraphState.VelicinaCvora;
     bool zakljucanoPomeranje => GraphState.ZakljucanoPomeranje;
     bool cuvajPoziciju => GraphState.CuvajPoziciju;
+    bool omoguciMenjanjeGrana => GraphState.OmoguciMenjanjeGrana;
     bool prikaziRezultat = false;
 
     bool rezultatJePovezan = false;
@@ -809,13 +817,38 @@
                 bojaGrane,
                 velicinaCvora,
                 zakljucanoPomeranje,
-                cuvajPoziciju
+                cuvajPoziciju,
+                omoguciMenjanjeGrana
             };
-            await JS.InvokeVoidAsync("renderGraph", "graphCanvas", graf.cvorovi, graf.grane, usmerenGraf, tezinskiGraf, settings);
+            var dotNetHelper = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("renderGraph", "graphCanvas", graf.cvorovi, graf.grane, usmerenGraf, tezinskiGraf, settings, dotNetHelper);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error rendering graph: {ex.Message}");
+        }
+    }
+
+    [JSInvokable]
+    public void AzurirajGranu(string edgeId, string fromId, string toId)
+    {
+        var grana = graf.grane.FirstOrDefault(g => g.ID == edgeId);
+        if (grana != null)
+        {
+            var pocetni = graf.cvorovi.FirstOrDefault(c => c.naziv == fromId) 
+                          ?? graf.cvorovi.FirstOrDefault(c => c.ID.ToString() == fromId);
+            
+            var krajnji = graf.cvorovi.FirstOrDefault(c => c.naziv == toId)
+                          ?? graf.cvorovi.FirstOrDefault(c => c.ID.ToString() == toId);
+
+            if (pocetni != null && krajnji != null)
+            {
+                grana.pocetniCvor = pocetni;
+                grana.krajnjiCvor = krajnji;
+                
+                Console.WriteLine($"Grana {edgeId} azurirana: {pocetni.naziv} -> {krajnji.naziv}");
+                StateHasChanged();
+            }
         }
     }
 
@@ -845,6 +878,7 @@
         tempVelicinaCvora = GraphState.VelicinaCvora;
         tempZakljucanoPomeranje = GraphState.ZakljucanoPomeranje;
         tempCuvajPoziciju = GraphState.CuvajPoziciju;
+        tempOmoguciMenjanjeGrana = GraphState.OmoguciMenjanjeGrana;
     }
 
     async Task ApplySettings()
@@ -854,6 +888,7 @@
         GraphState.VelicinaCvora = tempVelicinaCvora;
         GraphState.ZakljucanoPomeranje = tempZakljucanoPomeranje;
         GraphState.CuvajPoziciju = tempCuvajPoziciju;
+        GraphState.OmoguciMenjanjeGrana = tempOmoguciMenjanjeGrana;
 
         prikaziPodesavanja = false;
 

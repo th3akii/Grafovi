@@ -14,6 +14,7 @@ namespace Grafovi.Services
         public int VelicinaCvora { get; set; } = 16;
         public bool ZakljucanoPomeranje { get; set; } = false;
         public bool CuvajPoziciju { get; set; } = false;
+        public bool OmoguciMenjanjeGrana { get; set; } = false;
 
         public event Action? OnChange;
 
@@ -26,6 +27,7 @@ namespace Grafovi.Services
             VelicinaCvora = 16;
             ZakljucanoPomeranje = false;
             CuvajPoziciju = false;
+            OmoguciMenjanjeGrana = false;
             NotifyStateChanged();
         }
     }

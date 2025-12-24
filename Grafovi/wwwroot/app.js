@@ -11,7 +11,7 @@ function downloadFile(filename, content) {
 
 var networkInstances = {};
 
-function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, settings) {
+function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, settings, dotNetHelper) {
     console.log("=== renderGraph START ===");
     console.log("Settings received:", settings);
     console.log("preservePositions value:", settings?.preservePositions);
@@ -37,8 +37,9 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
         var nodeSize = settings.nodeSize ?? settings.velicinaCvora ?? 16;
         var lockMovement = settings.lockMovement ?? settings.zakljucanoPomeranje ?? false;
         var preservePositions = settings.preservePositions ?? settings.cuvajPoziciju ?? false;
+        var omoguciMenjanjeGrana = settings.omoguciMenjanjeGrana ?? false;
 
-        console.log('Parsed settings:', { nodeColor, edgeColor, nodeSize, lockMovement, preservePositions });
+        console.log('Parsed settings:', { nodeColor, edgeColor, nodeSize, lockMovement, preservePositions, omoguciMenjanjeGrana });
 
         // Prepare data arrays
         var nodesArray = nodesData.map((n, index) => {
@@ -72,6 +73,9 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                 color: { color: edgeColor }
             };
         });
+
+        // Handle parallel edges - add curvature to avoid overlap
+        edgesArray = handleParallelEdges(edgesArray);
 
         // Check if we should update existing network
         if (networkInstances[containerId] && preservePositions) {
@@ -140,6 +144,21 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                     dragView: true,
                     zoomView: true
                 },
+                manipulation: {
+                    enabled: omoguciMenjanjeGrana,
+                    editEdge: function(data, callback) {
+                        callback(data);
+                        if (dotNetHelper) {
+                            console.log("Calling AzurirajGranu (update)", data);
+                            dotNetHelper.invokeMethodAsync('AzurirajGranu', data.id, data.from, data.to)
+                                .catch(err => console.error("Error calling AzurirajGranu:", err));
+                        }
+                    },
+                    addNode: false,
+                    addEdge: false,
+                    deleteNode: false,
+                    deleteEdge: false
+                },
                 nodes: {
                     font: { size: nodeSize }
                 },
@@ -147,6 +166,8 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                     enabled: false
                 }
             });
+            
+            setupManipulationEvents(instance.network, container, omoguciMenjanjeGrana);
 
         } else {
             // Create New Network
@@ -172,7 +193,7 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                     width: 2,
                     shadow: true,
                     smooth: {
-                        type: 'dynamic'
+                        enabled: false
                     },
                     font: {
                         align: 'top'
@@ -192,6 +213,21 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                     dragNodes: !lockMovement,
                     dragView: true,
                     zoomView: true
+                },
+                manipulation: {
+                    enabled: omoguciMenjanjeGrana,
+                    editEdge: function(data, callback) {
+                        callback(data);
+                        if (dotNetHelper) {
+                            console.log("Calling AzurirajGranu (new)", data);
+                            dotNetHelper.invokeMethodAsync('AzurirajGranu', data.id, data.from, data.to)
+                                .catch(err => console.error("Error calling AzurirajGranu:", err));
+                        }
+                    },
+                    addNode: false,
+                    addEdge: false,
+                    deleteNode: false,
+                    deleteEdge: false
                 }
             };
 
@@ -202,12 +238,244 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
 
             var network = new vis.Network(container, data, options);
             networkInstances[containerId] = { network: network, nodes: nodes, edges: edges };
+            
+            setupManipulationEvents(network, container, omoguciMenjanjeGrana);
         }
 
     } catch (error) {
         console.error("Error in renderGraph:", error);
         alert("Došlo je do greške prilikom iscrtavanja grafa: " + error.message);
     }
+}
+
+function setupManipulationEvents(network, container, enabled) {
+    if (network._manipulationEventsAttached) {
+
+    } else {
+        // Track if we're currently in edit mode and which edge
+        network._inEditMode = false;
+        network._editingEdgeId = null;
+        network._isDraggingControlPoint = false;
+        network._justEnteredEditMode = false;
+        
+        // Helper function to exit edit mode
+        function exitEditMode() {
+            if (network._inEditMode) {
+                console.log("Exiting edit mode");
+                network._inEditMode = false;
+                network._editingEdgeId = null;
+                network._isDraggingControlPoint = false;
+                network._justEnteredEditMode = false;
+                network.disableEditMode();
+            }
+        }
+        
+        network.on("selectEdge", function(params) {
+            if (network.manipulationEnabled && !network._inEditMode) {
+                if (params.edges.length === 1 && params.nodes.length === 0) {
+                    console.log("selectEdge -> Entering edit mode");
+                    network._inEditMode = true;
+                    network._editingEdgeId = params.edges[0];
+                    network._justEnteredEditMode = true;
+                    network.editEdgeMode();
+                    
+                    // Reset the flag after a short delay
+                    setTimeout(function() {
+                        network._justEnteredEditMode = false;
+                    }, 300);
+                }
+            }
+        });
+
+        network.on("dragStart", function(params) {
+            if (network.manipulationEnabled && network._inEditMode) {
+                // User started dragging - likely a control point
+                network._isDraggingControlPoint = true;
+                console.log("dragStart in edit mode");
+            }
+        });
+
+        network.on("dragEnd", function(params) {
+            if (network.manipulationEnabled && network._inEditMode && network._isDraggingControlPoint) {
+                console.log("dragEnd in edit mode -> Exiting");
+                network._isDraggingControlPoint = false;
+                exitEditMode();
+            }
+        });
+        
+        network.on("click", function(params) {
+            if (network.manipulationEnabled) {
+                console.log("click event", { inEditMode: network._inEditMode, justEntered: network._justEnteredEditMode, nodes: params.nodes.length, edges: params.edges.length });
+                
+                if (network._inEditMode) {
+                    // Skip if we just entered edit mode (this is the same click that triggered entry)
+                    if (network._justEnteredEditMode) {
+                        console.log("Ignoring click - just entered edit mode");
+                        return;
+                    }
+                    
+                    // Check if clicked on the same edge we're editing
+                    if (params.edges.length === 1 && params.edges[0] === network._editingEdgeId) {
+                        console.log("Clicked on same edge - staying in edit mode");
+                        return;
+                    }
+                    
+                    // Exit edit mode for any other click
+                    exitEditMode();
+                    
+                    // If clicked on a different edge, enter edit mode for that edge
+                    if (params.edges.length === 1 && params.nodes.length === 0) {
+                        var clickedEdgeId = params.edges[0];
+                        setTimeout(function() {
+                            console.log("Entering edit mode for clicked edge");
+                            network._inEditMode = true;
+                            network._editingEdgeId = clickedEdgeId;
+                            network._justEnteredEditMode = true;
+                            network.editEdgeMode();
+                            setTimeout(function() {
+                                network._justEnteredEditMode = false;
+                            }, 300);
+                        }, 50);
+                    }
+                } else {
+                    // Not in edit mode
+                    if (params.edges.length === 1 && params.nodes.length === 0) {
+                        console.log("Edge click -> Entering edit mode");
+                        network._inEditMode = true;
+                        network._editingEdgeId = params.edges[0];
+                        network._justEnteredEditMode = true;
+                        network.editEdgeMode();
+                        setTimeout(function() {
+                            network._justEnteredEditMode = false;
+                        }, 300);
+                    }
+                }
+            }
+        });
+        
+        // Handle Escape key to exit edit mode
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && network.manipulationEnabled && network._inEditMode) {
+                console.log("Escape key -> Exiting edit mode");
+                exitEditMode();
+            }
+        });
+        
+        // Handle clicks anywhere on the canvas to exit edit mode
+        container.addEventListener('mouseup', function(e) {
+            if (network.manipulationEnabled && network._inEditMode) {
+                // Skip if we just entered edit mode
+                if (network._justEnteredEditMode) {
+                    console.log("mouseup ignored - just entered edit mode");
+                    return;
+                }
+                
+                // If we were dragging, dragEnd will handle it
+                if (network._isDraggingControlPoint) {
+                    console.log("mouseup after drag - dragEnd will handle");
+                    return;
+                }
+                
+                // Delay to let vis.js click event fire first
+                setTimeout(function() {
+                    // If still in edit mode after vis.js processed the click, exit
+                    if (network._inEditMode && !network._isDraggingControlPoint && !network._justEnteredEditMode) {
+                        console.log("Container mouseup -> Exiting edit mode");
+                        exitEditMode();
+                    }
+                }, 200);
+            }
+        });
+        
+        network._manipulationEventsAttached = true;
+    }
+    
+    // Update the state flag
+    network.manipulationEnabled = enabled;
+
+    // Handle CSS
+    var styleId = 'vis-manipulation-hide';
+    var existingStyle = document.getElementById(styleId);
+    
+    if (enabled) {
+        if (!existingStyle) {
+            var style = document.createElement('style');
+            style.id = styleId;
+            style.innerHTML = `
+                .vis-manipulation { display: none !important; }
+                .vis-edit-mode .vis-button { display: none !important; }
+                .vis-close { display: none !important; }
+            `;
+            document.head.appendChild(style);
+        }
+    } else {
+        if (existingStyle) {
+            existingStyle.remove();
+        }
+    }
+}
+
+// Handle parallel edges by adding curvature
+function handleParallelEdges(edgesArray) {
+    // Group edges by their node pair (regardless of direction)
+    var edgeGroups = {};
+    
+    edgesArray.forEach(function(edge, index) {
+        // Create a key that's the same regardless of direction
+        var nodeA = edge.from;
+        var nodeB = edge.to;
+        var key = nodeA < nodeB ? `${nodeA}-${nodeB}` : `${nodeB}-${nodeA}`;
+        
+        if (!edgeGroups[key]) {
+            edgeGroups[key] = [];
+        }
+        edgeGroups[key].push({ edge: edge, index: index });
+    });
+    
+    // Apply curvature to parallel edges
+    Object.keys(edgeGroups).forEach(function(key) {
+        var group = edgeGroups[key];
+        
+        if (group.length === 1) {
+            // Single edge - keep it straight
+            group[0].edge.smooth = { enabled: false };
+        } else {
+            // Multiple edges between same nodes - add curvature
+            var curveValues = getCurveValues(group.length);
+            
+            group.forEach(function(item, i) {
+                item.edge.smooth = {
+                    enabled: true,
+                    type: 'curvedCW',
+                    roundness: curveValues[i]
+                };
+            });
+        }
+    });
+    
+    return edgesArray;
+}
+
+// Generate curve values for parallel edges
+function getCurveValues(count) {
+    var values = [];
+    
+    if (count === 2) {
+        values = [0.2, -0.2];
+    } else if (count === 3) {
+        values = [0, 0.3, -0.3];
+    } else if (count === 4) {
+        values = [0.15, -0.15, 0.35, -0.35];
+    } else {
+        // For more edges, distribute evenly
+        var step = 0.5 / Math.ceil(count / 2);
+        for (var i = 0; i < count; i++) {
+            var offset = Math.floor((i + 1) / 2) * step;
+            values.push(i % 2 === 0 ? offset : -offset);
+        }
+    }
+    
+    return values;
 }
 
 function clearGraph(containerId) {

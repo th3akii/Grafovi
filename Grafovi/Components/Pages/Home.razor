@@ -207,12 +207,40 @@
                                          @onclick='() => SelectAlgorithm("prim")'>
                                         Prim
                                     </div>
+                                    <div class="custom-option @(odabraniAlgoritam == "belman-ford" ? "selected" : "")" 
+                                         @onclick='() => SelectAlgorithm("belman-ford")'>
+                                        Belman-Ford
+                                    </div>
                                 </div>
                             }
                         </div>
                     </div>
 
                     @if (odabraniAlgoritam == "dajkstra")
+                    {
+                        <div class="input-group">
+                            <label>Početni čvor</label>
+                            <div class="custom-select-container">
+                                <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni čvor" : $"Čvor {pocetniCvorDajkstra}")</span>
+                                    <span class="arrow">▼</span>
+                                </div>
+                                @if (dropdownPocetniCvor)
+                                {
+                                    <div class="custom-options">
+                                        @foreach (var cvor in graf.cvorovi)
+                                        {
+                                            <div class="custom-option @(pocetniCvorDajkstra == cvor.naziv ? "selected" : "")" 
+                                                 @onclick='() => SelectPocetniCvor(cvor.naziv)'>
+                                                Čvor @cvor.naziv
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (odabraniAlgoritam == "belman-ford")
                     {
                         <div class="input-group">
                             <label>Početni čvor</label>
@@ -311,6 +339,37 @@
                                 <h4>Rezultat:</h4>
                                 <p>@primRezultat</p>
                             </div> 
+                        }
+                        else if (odabraniAlgoritam == "belman-ford")
+                        {
+                            <div class="result-box">
+                                <h4>Rezultat:</h4>
+                                
+                                @if (belmanFordNegativanCiklus)
+                                {
+                                    <div style="padding: 15px; background-color: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px;">
+                                        <p style="margin: 0; color: #dc2626; font-weight: 600;">⚠️ Greška: Graf sadrži negativan ciklus!</p>
+                                    </div>
+                                }
+                                else if (belmanFordRezultati.Any())
+                                {
+                                    <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
+                                    <div class="dajkstra-results">
+                                        @foreach (BelmanFordRezultat rezultat in belmanFordRezultati)
+                                        {
+                                            <div class="dajkstra-result-card">
+                                                <div class="dajkstra-result-header">
+                                                    <span class="dajkstra-target-node">Do čvora @rezultat.cvor:</span>
+                                                    <span class="dajkstra-distance-badge">@rezultat.udaljenost</span>
+                                                </div>
+                                                <div class="dajkstra-path">
+                                                    Put: @rezultat.put
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
                         }
                     }
 
@@ -416,9 +475,12 @@
     string kruskalRezultat = "";
     string primRezultat = "";
 
+    bool dropdownPocetniCvor = false;
     List<DajkstraRezultat> dajkstraRezultati = new List<DajkstraRezultat>();
     string pocetniCvorDajkstra = "";
-    bool dropdownPocetniCvor = false;
+    List<BelmanFordRezultat> belmanFordRezultati = new List<BelmanFordRezultat>();
+    string pocetniCvorBelmanFord = "";
+    bool belmanFordNegativanCiklus = false;
 
     protected override void OnInitialized()
     {
@@ -531,6 +593,7 @@
             "dajkstra" => "Dajkstra",
             "kruskal" => "Kruskal",
             "prim" => "Prim",
+            "belman-ford" => "Belman-Ford",
             _ => "Izaberite algoritam"
         };
     }
@@ -630,6 +693,44 @@
                     ObrisiGranu(grana);
                 }
                 primRezultat = "Primov algoritam je uspešno izvršen.";
+                prikaziRezultat = true;
+            }
+        }
+        else if (odabraniAlgoritam == "belman-ford")
+        {
+            if (string.IsNullOrEmpty(pocetniCvorDajkstra))
+            {
+                JS.InvokeVoidAsync("alert", "Izaberite početni čvor.");
+                return;
+            }
+
+            RezultatPovezanosti? rezultat = GrafAlgoritamPovezan.DaLiJePovezanLista(graf);
+            
+            if(!rezultat.jePovezan)
+            {
+                odabraniAlgoritam = "povezanost";
+                prikaziRezultat = true;
+                rezultatJePovezan = rezultat.jePovezan;
+                grupeCvorova = rezultat.cvoroviUGrupi;
+            }
+
+            GrafCvor? pocetni = graf.cvorovi.FirstOrDefault(c => c.naziv == pocetniCvorDajkstra);
+            if (pocetni != null)
+            {
+                var alg = new GrafAlgoritamBelmanFord();
+                
+                belmanFordRezultati = alg.BelmanFordLista(graf, pocetni);
+                
+                if (belmanFordRezultati == null)
+                {
+                    belmanFordNegativanCiklus = true;
+                    belmanFordRezultati = new List<BelmanFordRezultat>();
+                }
+                else
+                {
+                    belmanFordNegativanCiklus = false;
+                }
+                
                 prikaziRezultat = true;
             }
         }

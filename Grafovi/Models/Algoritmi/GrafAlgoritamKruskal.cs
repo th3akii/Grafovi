@@ -5,15 +5,22 @@ using Grafovi.Models.Obrada;
 
 namespace Grafovi.Models.Algoritmi
 {
+    public class KruskalRezultat
+    {
+        public List<GrafGrana> graneZaBrisanje { get; set; } = new List<GrafGrana>();
+        public double ukupnaTezina { get; set; }
+    }
+
     public class GrafAlgoritamKruskal
     {
-        public List<GrafGrana> KruskalAlgoritam(Graf graf)
+        public KruskalRezultat KruskalAlgoritam(Graf graf)
         {
             List<GrafGrana> sveGrane = new List<GrafGrana>(graf.grane);
             sveGrane.Sort((a, b) => a.tezina.CompareTo(b.tezina));
 
             UnionFind unionFind = new UnionFind(graf);
             List<GrafGrana> graneZaBrisanje = new List<GrafGrana>();
+            double ukupnaTezina = 0;
 
             foreach (var grana in sveGrane)
             {
@@ -23,6 +30,7 @@ namespace Grafovi.Models.Algoritmi
                 if (korenCvor1 != korenCvor2)
                 {
                     unionFind.Spoji(korenCvor1, korenCvor2);
+                    ukupnaTezina += grana.tezina;
                 }
                 else
                 {
@@ -30,7 +38,11 @@ namespace Grafovi.Models.Algoritmi
                 }
             }
 
-            return graneZaBrisanje;
+            return new KruskalRezultat
+            {
+                graneZaBrisanje = graneZaBrisanje,
+                ukupnaTezina = ukupnaTezina
+            };
         }
     }
 

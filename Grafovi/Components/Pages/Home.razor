@@ -331,6 +331,12 @@
                             <div class="result-box">
                                 <h4>Rezultat:</h4>
                                 <p>@kruskalRezultat</p>
+                                @if (kruskalUkupnaTezina > 0)
+                                {
+                                    <div style="margin-top: 12px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
+                                        <strong style="color: #374151;">Ukupna težina: @kruskalUkupnaTezina</strong>
+                                    </div>
+                                }
                             </div>
                         }
                         else if (odabraniAlgoritam == "prim")
@@ -338,6 +344,12 @@
                             <div class="result-box">
                                 <h4>Rezultat:</h4>
                                 <p>@primRezultat</p>
+                                @if (primUkupnaTezina > 0)
+                                {
+                                    <div style="margin-top: 12px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
+                                        <strong style="color: #374151;">Ukupna težina: @primUkupnaTezina</strong>
+                                    </div>
+                                }
                             </div> 
                         }
                         else if (odabraniAlgoritam == "belman-ford")
@@ -481,7 +493,9 @@
     bool rezultatJePovezan = false;
     List<List<GrafCvor>> grupeCvorova = new List<List<GrafCvor>>();
     string kruskalRezultat = "";
+    double kruskalUkupnaTezina = 0;
     string primRezultat = "";
+    double primUkupnaTezina = 0;
 
     bool dropdownPocetniCvor = false;
     List<DajkstraRezultat> dajkstraRezultati = new List<DajkstraRezultat>();
@@ -672,10 +686,11 @@
             var alg = new GrafAlgoritamKruskal();
             var rezultat = alg.KruskalAlgoritam(graf);
 
-            foreach (var grana in rezultat)
+            foreach (var grana in rezultat.graneZaBrisanje)
             {
                 ObrisiGranu(grana);
             }
+            kruskalUkupnaTezina = rezultat.ukupnaTezina;
             kruskalRezultat = "Kruskalov algoritam je uspešno izvršen.";
             prikaziRezultat = true;
         }
@@ -702,10 +717,11 @@
                 var alg = new GrafAlgoritamPrim();
                 var rezultat = alg.PrimovAlgoritam(graf);
 
-                foreach (var grana in rezultat)
+                foreach (var grana in rezultat.graneZaBrisanje)
                 {
                     ObrisiGranu(grana);
                 }
+                primUkupnaTezina = rezultat.ukupnaTezina;
                 primRezultat = "Primov algoritam je uspešno izvršen.";
                 prikaziRezultat = true;
             }

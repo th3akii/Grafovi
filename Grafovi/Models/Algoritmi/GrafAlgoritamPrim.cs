@@ -6,9 +6,15 @@ using Grafovi.Models.Obrada;
 
 namespace Grafovi.Models.Algoritmi
 {
+    public class PrimRezultat
+    {
+        public List<GrafGrana> graneZaBrisanje { get; set; } = new List<GrafGrana>();
+        public double ukupnaTezina { get; set; }
+    }
+
     public class GrafAlgoritamPrim
     {
-        public List<GrafGrana> PrimovAlgoritam(Graf graf)
+        public PrimRezultat PrimovAlgoritam(Graf graf)
         {
             HashSet<int> obradjeniCvorovi = new HashSet<int>();
             List<GrafGrana> graneZaBrisanje = new List<GrafGrana>();
@@ -52,6 +58,12 @@ namespace Grafovi.Models.Algoritmi
                 }
             }
 
+            double ukupnaTezina = 0;
+            foreach (var grana in iskorisceneGrane)
+            {
+                ukupnaTezina += grana.tezina;
+            }
+
             foreach (var grana in graf.grane)
             {
                 if (!iskorisceneGrane.Contains(grana))
@@ -60,7 +72,11 @@ namespace Grafovi.Models.Algoritmi
                 }
             }
 
-            return graneZaBrisanje;
+            return new PrimRezultat
+            {
+                graneZaBrisanje = graneZaBrisanje,
+                ukupnaTezina = ukupnaTezina
+            };
         }
 
     }

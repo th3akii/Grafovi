@@ -1,9 +1,46 @@
-﻿@inherits LayoutComponentBase
+﻿@using Grafovi.Services
+@inject ThemeService ThemeService
+@implements IDisposable
+@inherits LayoutComponentBase
 
 <div class="page">
+    <div class="theme-toggle-container">
+        <button class="theme-toggle-btn" @onclick="ToggleTheme" title="@(ThemeService.IsDarkTheme ? "Prebaci na svetlu temu" : "Prebaci na tamnu temu")">
+            @if (ThemeService.IsDarkTheme)
+            {
+                <span>☀</span>
+            }
+            else
+            {
+                <span>⏾</span>
+            }
+        </button>
+    </div>
     <main>
         <article class="content px-4">
             @Body
         </article>
     </main>
 </div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InitializeAsync();
+            ThemeService.OnThemeChanged += StateHasChanged;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        await ThemeService.ToggleThemeAsync();
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= StateHasChanged;
+    }
+}

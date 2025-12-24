@@ -7,6 +7,7 @@
     <title>Grafovi</title>
     <base href="/" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/theme.css" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="graph.css" />
     <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
@@ -15,6 +16,11 @@
 </head>
 
 <body>
+    <script>
+        // Apply theme immediately to prevent flash
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
     <div id="app">
         <svg class="loading-progress">
             <circle r="40%" cx="50%" cy="50%" />

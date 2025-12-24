@@ -47,6 +47,16 @@ namespace Grafovi.Models
                 cvorovi.Add(krajnjiCvor);
             }
 
+            
+            if (pocetniCvor == krajnjiCvor)
+            {
+                var postojecaPetlja = grane.Any(g => g.pocetniCvor == pocetniCvor && g.krajnjiCvor == krajnjiCvor);
+                if (postojecaPetlja)
+                {
+                    throw new InvalidOperationException("Već postoji petlja na ovom čvoru!");
+                }
+            }
+
             string granaId = KreirajIDGrane(pocetniCvor, krajnjiCvor, usmerenGraf);
             grane.Add(new GrafGrana
             {

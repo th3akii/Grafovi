@@ -531,11 +531,17 @@
         string pocetniNaziv = granaInput[0].ToString().ToUpper();
         string krajnjiNaziv = granaInput[1].ToString().ToUpper();
 
-        graf.Dodaj(pocetniNaziv, krajnjiNaziv, tezinaInput, usmerenGraf);
-
-        granaInput = "";
-        tezinaInput = 1.0;
-        zaRenderovanje = true;
+        try
+        {
+            graf.Dodaj(pocetniNaziv, krajnjiNaziv, tezinaInput, usmerenGraf);
+            granaInput = "";
+            tezinaInput = 1.0;
+            zaRenderovanje = true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            await JS.InvokeVoidAsync("alert", ex.Message);
+        }
     }
 
     async Task ObrisiSve()

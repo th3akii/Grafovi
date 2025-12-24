@@ -11,6 +11,45 @@ function downloadFile(filename, content) {
 
 var networkInstances = {};
 
+// Function to update edge font colors based on theme
+function updateEdgeFontColors() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const fontColor = isDark ? '#ffffff' : '#000000';
+    
+    Object.keys(networkInstances).forEach(containerId => {
+        const instance = networkInstances[containerId];
+        if (instance && instance.network) {
+            const edges = instance.network.body.data.edges.get();
+            const updatedEdges = edges.map(edge => ({
+                ...edge,
+                font: {
+                    ...(edge.font || {}),
+                    color: fontColor,
+                    background: 'none',
+                    strokeWidth: 0
+                }
+            }));
+            instance.network.body.data.edges.update(updatedEdges);
+        }
+    });
+}
+
+// Listen for theme changes
+if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                updateEdgeFontColors();
+            }
+        });
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+    });
+}
+
 function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, settings, dotNetHelper) {
     console.log("=== renderGraph START ===");
     console.log("Settings received:", settings);
@@ -147,12 +186,39 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                 manipulation: {
                     enabled: omoguciMenjanjeGrana,
                     editEdge: function(data, callback) {
+                        console.log("editEdge pozvan sa:", data);
+                        
+                        // Proveri da li vec postoji petlja na ovom cvoru
+                        if (data.from === data.to) {
+                            var allEdges = instance.network.body.data.edges.get();
+                            console.log("Sve grane:", allEdges);
+                            
+                            var existingLoop = allEdges.find(function(e) {
+                                var sameLoop = e.from === data.from && e.to === data.to;
+                                var differentId = String(e.id) !== String(data.id);
+                                console.log(`Provera: ${e.id} - sameLoop: ${sameLoop}, differentId: ${differentId}`);
+                                return sameLoop && differentId;
+                            });
+                            
+                            if (existingLoop) {
+                                console.log("Nađena postojeća petlja:", existingLoop);
+                                alert('Već postoji petlja na ovom čvoru!');
+                                callback(null);
+                                return;
+                            }
+                        }
+                        
                         callback(data);
                         if (dotNetHelper) {
                             console.log("Calling AzurirajGranu (update)", data);
                             dotNetHelper.invokeMethodAsync('AzurirajGranu', data.id, data.from, data.to)
                                 .catch(err => console.error("Error calling AzurirajGranu:", err));
                         }
+                        
+                        // Ažuriraj sve grane da se reše paralele
+                        var allEdges = instance.network.body.data.edges.get();
+                        var updatedEdges = handleParallelEdges(allEdges);
+                        instance.network.body.data.edges.update(updatedEdges);
                     },
                     addNode: false,
                     addEdge: false,
@@ -196,7 +262,10 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                         enabled: false
                     },
                     font: {
-                        align: 'top'
+                        align: 'top',
+                        color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000',
+                        background: 'none',
+                        strokeWidth: 0
                     },
                     color: { color: edgeColor }
                 },
@@ -217,12 +286,39 @@ function renderGraph(containerId, nodesData, edgesData, isDirected, isWeighted, 
                 manipulation: {
                     enabled: omoguciMenjanjeGrana,
                     editEdge: function(data, callback) {
+                        console.log("editEdge pozvan sa:", data);
+                        
+                        // Proveri da li vec postoji petlja na ovom cvoru
+                        if (data.from === data.to) {
+                            var allEdges = network.body.data.edges.get();
+                            console.log("Sve grane:", allEdges);
+                            
+                            var existingLoop = allEdges.find(function(e) {
+                                var sameLoop = e.from === data.from && e.to === data.to;
+                                var differentId = String(e.id) !== String(data.id);
+                                console.log(`Provera: ${e.id} - sameLoop: ${sameLoop}, differentId: ${differentId}`);
+                                return sameLoop && differentId;
+                            });
+                            
+                            if (existingLoop) {
+                                console.log("Nađena postojeća petlja:", existingLoop);
+                                alert('Već postoji petlja na ovom čvoru!');
+                                callback(null);
+                                return;
+                            }
+                        }
+                        
                         callback(data);
                         if (dotNetHelper) {
                             console.log("Calling AzurirajGranu (new)", data);
                             dotNetHelper.invokeMethodAsync('AzurirajGranu', data.id, data.from, data.to)
                                 .catch(err => console.error("Error calling AzurirajGranu:", err));
                         }
+                        
+                        // Ažuriraj sve grane da se reše paralele
+                        var allEdges = network.body.data.edges.get();
+                        var updatedEdges = handleParallelEdges(allEdges);
+                        network.body.data.edges.update(updatedEdges);
                     },
                     addNode: false,
                     addEdge: false,
@@ -419,17 +515,27 @@ function setupManipulationEvents(network, container, enabled) {
 function handleParallelEdges(edgesArray) {
     // Group edges by their node pair (regardless of direction)
     var edgeGroups = {};
+    var selfLoops = {};
     
     edgesArray.forEach(function(edge, index) {
-        // Create a key that's the same regardless of direction
-        var nodeA = edge.from;
-        var nodeB = edge.to;
-        var key = nodeA < nodeB ? `${nodeA}-${nodeB}` : `${nodeB}-${nodeA}`;
-        
-        if (!edgeGroups[key]) {
-            edgeGroups[key] = [];
+        // Check if this is a self-loop (petlja)
+        if (edge.from === edge.to) {
+            var nodeId = edge.from;
+            if (!selfLoops[nodeId]) {
+                selfLoops[nodeId] = [];
+            }
+            selfLoops[nodeId].push({ edge: edge, index: index });
+        } else {
+            // Create a key that's the same regardless of direction
+            var nodeA = edge.from;
+            var nodeB = edge.to;
+            var key = nodeA < nodeB ? `${nodeA}-${nodeB}` : `${nodeB}-${nodeA}`;
+            
+            if (!edgeGroups[key]) {
+                edgeGroups[key] = [];
+            }
+            edgeGroups[key].push({ edge: edge, index: index });
         }
-        edgeGroups[key].push({ edge: edge, index: index });
     });
     
     // Apply curvature to parallel edges
@@ -453,6 +559,31 @@ function handleParallelEdges(edgesArray) {
         }
     });
     
+    // Handle multiple self-loops on the same node
+    Object.keys(selfLoops).forEach(function(nodeId) {
+        var loops = selfLoops[nodeId];
+        
+        if (loops.length === 1) {
+            // Single self-loop
+            loops[0].edge.smooth = {
+                enabled: true,
+                type: 'cubicBezier'
+            };
+        } else {
+            // Multiple self-loops - make them different sizes
+            loops.forEach(function(item, i) {
+                // Increase size for each additional loop to avoid overlap
+                var loopSize = 30 + (i * 25);
+                item.edge.smooth = {
+                    enabled: true,
+                    type: 'cubicBezier',
+                    forceDirection: 'none'
+                };
+                item.edge.selfReferenceSize = loopSize;
+            });
+        }
+    });
+    
     return edgesArray;
 }
 
@@ -461,14 +592,14 @@ function getCurveValues(count) {
     var values = [];
     
     if (count === 2) {
-        values = [0.2, -0.2];
+        values = [0.4, -0.4];
     } else if (count === 3) {
-        values = [0, 0.3, -0.3];
+        values = [0, 0.5, -0.5];
     } else if (count === 4) {
-        values = [0.15, -0.15, 0.35, -0.35];
+        values = [0.3, -0.3, 0.6, -0.6];
     } else {
         // For more edges, distribute evenly
-        var step = 0.5 / Math.ceil(count / 2);
+        var step = 0.8 / Math.ceil(count / 2);
         for (var i = 0; i < count; i++) {
             var offset = Math.floor((i + 1) / 2) * step;
             values.push(i % 2 === 0 ? offset : -offset);

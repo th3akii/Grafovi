@@ -419,4 +419,5 @@ FodyWeavers.xsd
 **/wwwroot/css/*.css
 !**/wwwroot/css/app.css
 !**/wwwroot/css/site.css
+!**/wwwroot/css/theme.css
 **/wwwroot/css/*.min.css

@@ -15,10 +15,9 @@ namespace Grafovi.Models.Algoritmi
         private Dictionary<int, double> distanca = new Dictionary<int, double>();
         private Dictionary<int, string> put = new Dictionary<int, string>();
 
-        public List<BelmanFordRezultat> BelmanFordLista(Graf graf, GrafCvor pocetniCvor)
+        public List<BelmanFordRezultat>? BelmanFordLista(Graf graf, GrafCvor pocetniCvor)
         {
             List<BelmanFordRezultat> rezultati = new List<BelmanFordRezultat>();
-            bool menjano = false;
 
             foreach (var cvor in graf.cvorovi)
             {
@@ -31,7 +30,6 @@ namespace Grafovi.Models.Algoritmi
 
             for (int i = 0; i < graf.cvorovi.Count()-1; i++)
             {
-                menjano = false;
                 foreach(var g in graf.grane)
                 {
                     int cvor1 = g.pocetniCvor.ID;
@@ -42,7 +40,6 @@ namespace Grafovi.Models.Algoritmi
                     {
                         distanca[cvor2] = distanca[cvor1] + tezina;
                         put[cvor2] = put[cvor1] + " -> " + g.krajnjiCvor.naziv;
-                        menjano = true;
                     }
                     
                     if (!graf.usmeren)

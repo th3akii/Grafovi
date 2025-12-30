@@ -3,6 +3,7 @@
 @using System.Threading.Tasks
 @using System.Xml.Serialization
 @using Grafovi.Models.Algoritmi
+@using Grafovi.Models.Komande
 @using Grafovi.Services
 @using System.Runtime.InteropServices
 @inject IJSRuntime JS
@@ -19,10 +20,16 @@
         </div>        
         <div class="graph-content-wrapper">
             <div class="canvas-controls">
-                <button @onclick="RefreshGraf"class="canvas-btn" title="Ponovo generiši">
-                    <span>↻</span>
+                <button @onclick="Undo" class="canvas-btn" title="Undo (Ctrl+Z)" disabled="@(!MozeUndo())">
+                    <span>↶</span>
                 </button>
-                <button @onclick="ToggleSettings" class="canvas-btn" title="Podešavanja">
+                <button @onclick="Redo" class="canvas-btn" title="Redo (Ctrl+Y)" disabled="@(!MozeRedo())">
+                    <span>↷</span>
+                </button>
+                <button @onclick="RefreshGraf"class="canvas-btn" title="Ponovo generisi">
+                    <span>⟳</span>
+                </button>
+                <button @onclick="ToggleSettings" class="canvas-btn" title="Podesavanja">
                     <span>⚙</span>
                 </button>
             </div>
@@ -62,7 +69,7 @@
                 <!-- Unos -->
                 <div class="panel-section">
                     <h3>Unos Grafa</h3>
-                    <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
+                    <p class="section-description">Unesite grane grafa u formatu AB (grana izmedu cvorova A i B)</p>
                     
                     <div class="input-group-inline">
                         <label>
@@ -80,14 +87,14 @@
 
                     <div class="input-group">
                         <label>Grana (npr. AB, CD)</label>
-                        <input type="text" @bind="granaInput" placeholder="AB" class="input-field" />
+                        <input type="text" @bind="granaInput" @bind:event="oninput" placeholder="AB" class="input-field" @onkeydown="GranaUnosEnter" maxlength="2" />
                     </div>
 
                     @if (tezinskiGraf)
                     {
                         <div class="input-group">
                             <label>Težina</label>
-                            <input type="number" @bind="tezinaInput" placeholder="1.0" class="input-field" step="0.1" />
+                            <input type="number" @bind="tezinaInput" @bind:event="oninput" placeholder="1.0" class="input-field" step="0.1" @onkeydown="GranaUnosEnter" @onblur="DefaultTezina"/>
                         </div>
                     }
 
@@ -95,7 +102,7 @@
                         <button @onclick="DodajGranu" class="btn btn-primary">
                             <span>+</span> Dodaj granu
                         </button>
-                        <button @onclick="ObrisiSve" class="btn btn-delete">
+                        <button @onclick="PotvrdiBrisanjeSvega" class="btn btn-delete">
                             <span>🗑</span>
                         </button>
                     </div>
@@ -119,11 +126,11 @@
                 <!-- Info -->
                 <div class="panel-section">
                     <h3>Informacije o Grafu</h3>
-                    <p class="section-description">Pregled čvorova i grana</p>
+                    <p class="section-description">Pregled cvorova i grana</p>
                     
                     <div class="info-cards">
                         <div class="info-card info-card-blue">
-                            <div class="info-label">Broj čvorova</div>
+                            <div class="info-label">Broj cvorova</div>
                             <div class="info-value">@graf.cvorovi.Count</div>
                         </div>
                         <div class="info-card info-card-green">
@@ -134,7 +141,7 @@
 
                     <div class="info-details">
                         <div class="info-item">
-                            <strong>Čvorovi:</strong>
+                            <strong>Cvorovi:</strong>
                             @if (graf.cvorovi.Count > 0)
                             {
                                 @foreach (var cvor in graf.cvorovi)
@@ -147,7 +154,7 @@
                             }
                             else
                             {
-                                <p>Nema čvorova</p>
+                                <p>Nema cvorova</p>
                             }
                         </div>
                         <div class="info-item">
@@ -159,7 +166,12 @@
                                     <div class="item-tag-grana">
                                         <span class="grana-label">@grana.pocetniCvor.naziv - @grana.krajnjiCvor.naziv</span>
                                         <div class="grana-controls">
-                                            <input type="number" class="weight-input" @bind="grana.tezina" @bind:after="() => AzurirajTezinu(grana)" step="0.1" disabled="@(!tezinskiGraf)"/> 
+                                            <input type="number" class="weight-input"
+                                                    value="@grana.tezina" 
+                                                    @oninput="(e) => OnTezinaChanged(e, grana)" 
+                                                    step="0.1" 
+                                                    disabled="@(!tezinskiGraf)"
+                                                    @onkeydown="(e) => AzurirajTezinuEnter(e, grana)"/> 
                                             <button @onclick="() => ObrisiGranu(grana)" class="delete-btn">x</button>
                                         </div>
                                     </div>
@@ -219,10 +231,10 @@
                     @if (odabraniAlgoritam == "dajkstra")
                     {
                         <div class="input-group">
-                            <label>Početni čvor</label>
+                            <label>Pocetni cvor</label>
                             <div class="custom-select-container">
                                 <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
-                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni čvor" : $"Čvor {pocetniCvorDajkstra}")</span>
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite pocetni cvor" : $"Cvor {pocetniCvorDajkstra}")</span>
                                     <span class="arrow">▼</span>
                                 </div>
                                 @if (dropdownPocetniCvor)
@@ -232,7 +244,7 @@
                                         {
                                             <div class="custom-option @(pocetniCvorDajkstra == cvor.naziv ? "selected" : "")" 
                                                  @onclick='() => SelectPocetniCvor(cvor.naziv)'>
-                                                Čvor @cvor.naziv
+                                                Cvor @cvor.naziv
                                             </div>
                                         }
                                     </div>
@@ -243,10 +255,10 @@
                     @if (odabraniAlgoritam == "belman-ford")
                     {
                         <div class="input-group">
-                            <label>Početni čvor</label>
+                            <label>Pocetni cvor</label>
                             <div class="custom-select-container">
                                 <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
-                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni čvor" : $"Čvor {pocetniCvorDajkstra}")</span>
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite pocetni cvor" : $"Cvor {pocetniCvorDajkstra}")</span>
                                     <span class="arrow">▼</span>
                                 </div>
                                 @if (dropdownPocetniCvor)
@@ -256,7 +268,7 @@
                                         {
                                             <div class="custom-option @(pocetniCvorDajkstra == cvor.naziv ? "selected" : "")" 
                                                  @onclick='() => SelectPocetniCvor(cvor.naziv)'>
-                                                Čvor @cvor.naziv
+                                                Cvor @cvor.naziv
                                             </div>
                                         }
                                     </div>
@@ -286,7 +298,7 @@
                                 {
                                     <div class="result-error">
                                         <span class="icon">❌</span>
-                                        <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
+                                        <span>Graf nije povezan - pronadeno je @grupeCvorova.Count komponenti povezanosti</span>
                                     </div>
                                 }
 
@@ -307,32 +319,41 @@
                         else if (odabraniAlgoritam == "dajkstra")
                         {
                             <div class="result-box">
-                                <h4>Rezultat:</h4>
-                                <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
-                                
-                                <div class="dajkstra-results">
-                                    @if (dajkstraNegativnaTezina)
-                                    {
-                                        <div style="padding: 15px; background-color: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px; margin-bottom: 12px;">
-                                            <p style="margin: 0; color: #dc2626; font-weight: 600;">⚠️ Greška: Graf sadrži grane sa negativnom težinom, Dajkstrin algoritam ne može biti primenjen!</p>
-                                        </div>
-                                    }
-                                    else if (dajkstraRezultati.Any())
-                                    {
-                                         @foreach (DajkstraRezultat rezultat in dajkstraRezultati)
+                                @if (dajkstraNegativnaTezina)
+                                {
+                                    <div style="padding: 15px; background-color: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px; margin-bottom: 12px;">
+                                        <p style="margin: 0; color: #dc2626; font-weight: 600;">⚠️ Greška: Graf sadrži grane sa negativnom težinom, Dajkstrin algoritam ne može biti primenjen!</p>
+                                    </div>
+                                    dajkstraNegativnaTezina = false;
+                                    odabraniAlgoritam = "dajkstra";
+                                }
+                                else if (dajkstraRezultati.Any())
+                                {
+                                    <h4>Rezultat:</h4>
+                                    <p style="margin-bottom: 10px;">Najkrace udaljenosti od cvora @pocetniCvorDajkstra:</p>
+                                    
+                                    <div class="dajkstra-results">
+                                        @foreach (DajkstraRezultat rezultat in dajkstraRezultati)
                                         {
                                             <div class="dajkstra-result-card">
                                                 <div class="dajkstra-result-header">
-                                                    <span class="dajkstra-target-node">Do čvora @rezultat.cvor:</span>
-                                                    <span class="dajkstra-distance-badge">@rezultat.udaljenost</span>
+                                                    <span class="dajkstra-target-node">Do cvora @rezultat.cvor:</span>
+                                                    <span class="dajkstra-distance-badge">@(rezultat.udaljenost == double.MaxValue ? "8" : rezultat.udaljenost.ToString())</span>
                                                 </div>
                                                 <div class="dajkstra-path">
-                                                    Put: @rezultat.put
+                                                    @if (rezultat.udaljenost == double.MaxValue)
+                                                    {
+                                                        <span>Nije dostupan</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Put: @rezultat.put</span>
+                                                    }
                                                 </div>
                                             </div>
                                         }
-                                    }
-                                </div>
+                                    </div>
+                                }
                             </div>
                         }
                         else if (odabraniAlgoritam == "kruskal")
@@ -342,8 +363,8 @@
                                 <p>@kruskalRezultat</p>
                                 @if (kruskalUkupnaTezina > 0)
                                 {
-                                    <div style="margin-top: 12px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
-                                        <strong style="color: #374151;">Ukupna težina: @kruskalUkupnaTezina</strong>
+                                    <div class="total-weight-display">
+                                        <strong>Ukupna težina: @kruskalUkupnaTezina</strong>
                                     </div>
                                 }
                             </div>
@@ -355,8 +376,8 @@
                                 <p>@primRezultat</p>
                                 @if (primUkupnaTezina > 0)
                                 {
-                                    <div style="margin-top: 12px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
-                                        <strong style="color: #374151;">Ukupna težina: @primUkupnaTezina</strong>
+                                    <div class="total-weight-display">
+                                        <strong>Ukupna težina: @primUkupnaTezina</strong>
                                     </div>
                                 }
                             </div> 
@@ -369,22 +390,29 @@
                                 @if (belmanFordNegativanCiklus)
                                 {
                                     <div style="padding: 15px; background-color: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px;">
-                                        <p style="margin: 0; color: #dc2626; font-weight: 600;">⚠️ Greška: Graf sadrži negativan ciklus!</p>
+                                        <p style="margin: 0; color: #dc2626; font-weight: 600;">?? Greška: Graf sadrži negativan ciklus!</p>
                                     </div>
                                 }
                                 else if (belmanFordRezultati.Any())
                                 {
-                                    <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
+                                    <p style="margin-bottom: 10px; color: #4b5563;">Najkrace udaljenosti od cvora @pocetniCvorDajkstra:</p>
                                     <div class="dajkstra-results">
                                         @foreach (BelmanFordRezultat rezultat in belmanFordRezultati)
                                         {
                                             <div class="dajkstra-result-card">
                                                 <div class="dajkstra-result-header">
-                                                    <span class="dajkstra-target-node">Do čvora @rezultat.cvor:</span>
-                                                    <span class="dajkstra-distance-badge">@rezultat.udaljenost</span>
+                                                    <span class="dajkstra-target-node">Do cvora @rezultat.cvor:</span>
+                                                    <span class="dajkstra-distance-badge">@(rezultat.udaljenost == double.MaxValue ? "8" : rezultat.udaljenost.ToString())</span>
                                                 </div>
                                                 <div class="dajkstra-path">
-                                                    Put: @rezultat.put
+                                                    @if (rezultat.udaljenost == double.MaxValue)
+                                                    {
+                                                        <span>Nije dostupan</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Put: @rezultat.put</span>
+                                                    }
                                                 </div>
                                             </div>
                                         }
@@ -397,7 +425,7 @@
                     @if (graf.cvorovi.Count == 0)
                     {
                         <div class="alert-box">
-                            Morate prvo kreirati graf da biste primenili algoritme
+                            Morate prvo kreirati graf da biste primenili algoritme!
                         </div>
                     }
                 </div>
@@ -420,7 +448,7 @@
             </div>
             <div class="modal-body">
                 <div class="input-group">
-                    <label>Boja čvorova</label>
+                    <label>Boja cvorova</label>
                     <input type="color" @bind="tempBojaCvora" class="color-picker" />
                 </div>
                 <div class="input-group">
@@ -428,7 +456,7 @@
                     <input type="color" @bind="tempBojaGrane" class="color-picker" />
                 </div>
                 <div class="input-group">
-                    <label>Veličina čvorova (@tempVelicinaCvora)</label>
+                    <label>Velicina cvorova (@tempVelicinaCvora)</label>
                     <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
                 </div>
                 <div class="input-group-inline">
@@ -439,13 +467,13 @@
                 </div>
                 <div class="input-group-inline">
                     <label>
-                        <span>Zaključaj pomeranje</span>
+                        <span>Zakljucaj pomeranje</span>
                         <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
                     </label>
                 </div>
                 <div class="input-group-inline">
                     <label>
-                        <span>Omogući menjanje grana</span>
+                        <span>Omoguci menjanje grana</span>
                         <input type="checkbox" @bind="tempOmoguciMenjanjeGrana" class="toggle-switch" />
                     </label>
                 </div>
@@ -477,7 +505,7 @@
     }
 
     string granaInput = "";
-    double tezinaInput = 1.0;
+    double? tezinaInput = 1.0;
     string activeTab = "unos";
     string odabraniAlgoritam = "";
     bool dropdown = false;
@@ -511,15 +539,17 @@
     string pocetniCvorDajkstra = "";
     bool dajkstraNegativnaTezina = false;
     List<BelmanFordRezultat> belmanFordRezultati = new List<BelmanFordRezultat>();
-    string pocetniCvorBelmanFord = "";
     bool belmanFordNegativanCiklus = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         if (graf.cvorovi.Count > 0)
         {
             zaRenderovanje = true;
         }
+
+        var dotNetHelper = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("setupKeyboardShortcuts", dotNetHelper);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -536,7 +566,7 @@
 
     async Task DodajGranu()
     {
-        if (string.IsNullOrWhiteSpace(granaInput) || (granaInput.Length < 2 && granaInput.Length != 1) || granaInput.Length > 2)
+        if (string.IsNullOrWhiteSpace(granaInput))
         {
             granaInput = "";
             return;
@@ -545,7 +575,8 @@
         if (granaInput.Length == 1)
         {
             string cvor = granaInput[0].ToString().ToUpper();
-            graf.DodajJedanCvor(cvor);
+            var komanda = new KomandaDodajCvor(cvor);
+            IzvrsiKomandu(komanda);
             granaInput = "";
             tezinaInput = 1.0;
             zaRenderovanje = true;
@@ -557,7 +588,8 @@
 
         try
         {
-            graf.Dodaj(pocetniNaziv, krajnjiNaziv, tezinaInput, usmerenGraf);
+            var komanda = new KomandaDodajGranu(pocetniNaziv, krajnjiNaziv, tezinaInput ?? 1.0, usmerenGraf);
+            IzvrsiKomandu(komanda);
             granaInput = "";
             tezinaInput = 1.0;
             zaRenderovanje = true;
@@ -568,8 +600,32 @@
         }
     }
 
+    async Task GranaUnosEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await DodajGranu();
+        }
+    }
+
+    async Task PotvrdiBrisanjeSvega()
+    {
+        if (graf.cvorovi.Count == 0)
+        {
+            return;
+        }
+
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Da li ste sigurni da želite da obrišete sve cvorove i grane?");
+        if (confirmed)
+        {
+            await ObrisiSve();
+        }
+    }
+
     async Task ObrisiSve()
     {
+        var komanda = new KomandaObrisiSve();
+        IzvrsiKomandu(komanda);
         graf.cvorovi.Clear();
         graf.grane.Clear();
         await ObrisiGraf();
@@ -590,14 +646,20 @@
 
     async Task ObrisiCvor(GrafCvor cvor)
     {
+        var komanda = new KomandaObrisiCvor(cvor.ID);
+        IzvrsiKomandu(komanda);
         graf.ObrisiCvor(cvor);
         zaRenderovanje = true;
+        await Task.CompletedTask;
     }
 
     async Task ObrisiGranu(GrafGrana grana)
     {
+        var komanda = new KomandaObrisiGranu(grana.ID);
+        IzvrsiKomandu(komanda);
         graf.ObrisiGranu(grana);
         zaRenderovanje = true;
+        await Task.CompletedTask;
     }
 
     void ToggleDropdown()
@@ -636,10 +698,11 @@
         };
     }
 
-    void PokreniAlgoritam()
+    async Task PokreniAlgoritam()
     {
         if (graf.cvorovi.Count == 0)
         {
+            await JS.InvokeVoidAsync("alert", "Nema cvorova u grafu. Dodajte grane pre pokretanja algoritma.");
             return;
         }
         
@@ -657,7 +720,7 @@
         {
             if (string.IsNullOrEmpty(pocetniCvorDajkstra))
             {
-                JS.InvokeVoidAsync("alert", "Izaberite početni čvor.");
+                await JS.InvokeVoidAsync("alert", "Izaberite pocetni cvor.");
                 return;
             }
 
@@ -705,7 +768,7 @@
 
             foreach (var grana in rezultat.graneZaBrisanje)
             {
-                ObrisiGranu(grana);
+                await ObrisiGranu(grana);
             }
             kruskalUkupnaTezina = rezultat.ukupnaTezina;
             kruskalRezultat = "Kruskalov algoritam je uspešno izvršen.";
@@ -736,7 +799,7 @@
 
                 foreach (var grana in rezultat.graneZaBrisanje)
                 {
-                    ObrisiGranu(grana);
+                    await ObrisiGranu(grana);
                 }
                 primUkupnaTezina = rezultat.ukupnaTezina;
                 primRezultat = "Primov algoritam je uspešno izvršen.";
@@ -747,7 +810,7 @@
         {
             if (string.IsNullOrEmpty(pocetniCvorDajkstra))
             {
-                JS.InvokeVoidAsync("alert", "Izaberite početni čvor.");
+                await JS.InvokeVoidAsync("alert", "Izaberite pocetni cvor.");
                 return;
             }
 
@@ -766,9 +829,9 @@
             {
                 var alg = new GrafAlgoritamBelmanFord();
                 
-                belmanFordRezultati = alg.BelmanFordLista(graf, pocetni);
+                var rezultatBelmanFord = alg.BelmanFordLista(graf, pocetni);
                 
-                if (belmanFordRezultati == null)
+                if (rezultatBelmanFord == null)
                 {
                     belmanFordNegativanCiklus = true;
                     belmanFordRezultati = new List<BelmanFordRezultat>();
@@ -776,6 +839,7 @@
                 else
                 {
                     belmanFordNegativanCiklus = false;
+                    belmanFordRezultati = rezultatBelmanFord;
                 }
                 
                 prikaziRezultat = true;
@@ -819,7 +883,7 @@
 
             if (importovaniGraf != null)
             {
-                ObrisiSve();
+                await ObrisiSve();
                 foreach (var grana in importovaniGraf.grane)
                 {
                     var pocetni = importovaniGraf.cvorovi.FirstOrDefault(c => c.ID == grana.pocetniCvor.ID);
@@ -887,6 +951,27 @@
                 
                 Console.WriteLine($"Grana {edgeId} azurirana: {pocetni.naziv} -> {krajnji.naziv}");
                 StateHasChanged();
+            }
+        }
+    }
+
+    async Task AzurirajTezinuEnter(KeyboardEventArgs e, GrafGrana grana)
+    {
+        if (e.Key == "Enter")
+        {
+            await AzurirajTezinu(grana);
+        }
+    }
+
+    async Task OnTezinaChanged(ChangeEventArgs e, GrafGrana grana)
+    {
+        if (double.TryParse(e.Value?.ToString(), out double novaTezina))
+        {
+            if (grana.tezina != novaTezina)
+            {
+                var komanda = new KomandaPromeniTezinu(grana.ID, novaTezina);
+                IzvrsiKomandu(komanda);
+                await AzurirajTezinu(grana);
             }
         }
     }
@@ -984,5 +1069,159 @@
                 Console.WriteLine($"Error updating single edge label: {ex.Message}");
             }
         }
+    }
+
+    void DefaultTezina(FocusEventArgs e)
+    {
+        if (tezinaInput == null)
+        {
+            tezinaInput = 1.0;
+        }
+    }
+
+    //Undo/Redo
+    private Stack<IKomanda> undoStack = new Stack<IKomanda>();
+    private Stack<IKomanda> redoStack = new Stack<IKomanda>();
+    private const int maxStackSize = 100;
+
+    bool MozeUndo() => undoStack.Count > 0;
+    bool MozeRedo() => redoStack.Count > 0;
+
+    void IzvrsiKomandu(IKomanda komanda)
+    {
+        komanda.Izvrsi(graf);
+        undoStack.Push(komanda);
+        redoStack.Clear();
+
+        // obrce stek i brise najstariju komandu
+        if (undoStack.Count > maxStackSize)
+        {
+            var pomStek = new Stack<IKomanda>(undoStack.Reverse().Skip(1).Reverse());
+            undoStack = pomStek;
+        }
+    }
+
+    async Task Undo()
+    {
+        if (!MozeUndo()) return;
+
+        try
+        {
+            var komanda = undoStack.Pop();
+            komanda.Ponisti(graf);
+            redoStack.Push(komanda);
+
+            zaRenderovanje = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("alert", $"Greška pri undo operaciji: {ex.Message}");
+        }
+    }
+
+    async Task Redo()
+    {
+        if (!MozeRedo()) return;
+
+        try
+        {
+            var komanda = redoStack.Pop();
+            komanda.Izvrsi(graf);
+            undoStack.Push(komanda);
+
+            zaRenderovanje = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("alert", $"Greška pri redo operaciji: {ex.Message}");
+        }
+    }
+
+    //Keyboard shortcuts
+    [JSInvokable]
+    public async Task PritisnutoDugme(KeyboardEventArgs e)
+    {
+        if (e.CtrlKey && e.Key.ToLower() == "z" && !e.ShiftKey)
+        {
+            await JS.InvokeVoidAsync("preventDefaultKeyEvent");
+            await Undo();
+            return;
+        }
+
+        if ((e.CtrlKey && e.Key.ToLower() == "y") ||
+                (e.CtrlKey && e.ShiftKey && e.Key.ToLower() == "z"))
+        {
+            await JS.InvokeVoidAsync("preventDefaultKeyEvent");
+            await Redo();
+            return;
+        }
+
+        if (e.CtrlKey && e.Key.ToLower() == "s")
+        {
+            await JS.InvokeVoidAsync("preventDefaultKeyEvent");
+            await ExportujGraf();
+            return;
+        }
+
+        if (e.CtrlKey && e.Key.ToLower() == "o")
+        {
+            await JS.InvokeVoidAsync("preventDefaultKeyEvent");
+            await JS.InvokeVoidAsync("triggerFileInput", "importFileInput");
+            return;
+        }
+
+        if (e.CtrlKey && e.Key.ToLower() == "r")
+        {
+            await JS.InvokeVoidAsync("preventDefaultKeyEvent");
+            RefreshGraf();
+            return;
+        }
+
+        if (e.CtrlKey && e.Key.ToLower() == "p")
+        {
+            await JS.InvokeVoidAsync("preventDefaultKeyEvent");
+            ToggleSettings();
+            return;
+        }
+
+        if (e.Key == "Escape")
+        {
+            if (prikaziPodesavanja)
+            {
+                prikaziPodesavanja = false;
+                StateHasChanged();
+            }
+            dropdown = false;
+            dropdownPocetniCvor = false;
+            StateHasChanged();
+        }
+    }
+    [JSInvokable]
+    public async Task HandleUndo() => await Undo();
+
+    [JSInvokable]
+    public async Task HandleRedo() => await Redo();
+
+    [JSInvokable]
+    public async Task HandleSave() => await ExportujGraf();
+
+    [JSInvokable]
+    public async Task HandleOpen() => await ImportujGraf(await JS.InvokeAsync<InputFileChangeEventArgs>("getFileInputEvent", "importFileInput"));
+
+    [JSInvokable]
+    public void HandleRefresh() { RefreshGraf(); StateHasChanged(); }
+
+    [JSInvokable]
+    public void HandleSettings() { ToggleSettings(); StateHasChanged(); }
+
+    [JSInvokable]
+    public void HandleEscape() 
+    { 
+        if (prikaziPodesavanja) prikaziPodesavanja = false;
+        dropdown = false;
+        dropdownPocetniCvor = false;
+        StateHasChanged();
     }
 }

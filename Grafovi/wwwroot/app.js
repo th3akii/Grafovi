@@ -9,6 +9,62 @@ function downloadFile(filename, content) {
     document.body.removeChild(element);
 }
 
+// Nikad vise u zivotu
+window.setupKeyboardShortcuts = function(dotNetHelper) {
+    document.addEventListener('keydown', function(e) {
+        const activeElement = document.activeElement;
+        const isInputField = activeElement && (
+            activeElement.tagName === 'INPUT' || 
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.isContentEditable
+        );
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+            if (!isInputField || activeElement.classList.contains('input-field')) {
+                e.preventDefault();
+                dotNetHelper.invokeMethodAsync('HandleUndo');
+                return;
+            }
+        }
+
+        if ((e.ctrlKey && e.key.toLowerCase() === 'y') || 
+            (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) {
+            e.preventDefault();
+            dotNetHelper.invokeMethodAsync('HandleRedo');
+            return;
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            dotNetHelper.invokeMethodAsync('HandleSave');
+            return;
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'o') {
+            e.preventDefault();
+            dotNetHelper.invokeMethodAsync('HandleOpen');
+            return;
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'r') {
+            e.preventDefault();
+            dotNetHelper.invokeMethodAsync('HandleRefresh');
+            return;
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+            e.preventDefault();
+            dotNetHelper.invokeMethodAsync('HandleSettings');
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            dotNetHelper.invokeMethodAsync('HandleEscape');
+            return;
+        }
+    });
+};
+
 var networkInstances = {};
 
 // Function to update edge font colors based on theme
@@ -862,23 +918,8 @@ function showSettingsModal(bojaCvora, bojaGrane, velicinaCvora, cuvajPoziciju, z
                         </label>
                     </div>
                 </div>
-                <div class="modal-footer" style="
-                    padding: 16px 20px;
-                    background: #f9fafb;
-                    border-top: 1px solid #e5e7eb;
-                    display: flex;
-                    justify-content: flex-end;
-                ">
-                    <button onclick="window.applySettingsFromModal()" style="
-                        padding: 10px 16px;
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 14px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        background: #000;
-                        color: white;
-                    ">Primeni</button>
+                <div class="modal-footer">
+                    <button onclick="window.applySettingsFromModal()" class="btn btn-primary">Primeni</button>
                 </div>
             </div>
         </div>

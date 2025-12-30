@@ -27,7 +27,6 @@ namespace Grafovi.Models
             {
                 return;
             }
-
             grane.Remove(grana);
         }
 

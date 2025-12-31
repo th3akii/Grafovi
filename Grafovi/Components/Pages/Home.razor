@@ -4,11 +4,16 @@
 @using System.Xml.Serialization
 @using Grafovi.Models.Algoritmi
 @using Grafovi.Models.Komande
+@using System.Threading;
+@using System.Threading;
 @using Grafovi.Services
 @using System.Runtime.InteropServices
+@using System.Text.Json
+@using System.Text.Json
 @inject IJSRuntime JS
 @inject GraphStateService GraphState
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Grafovi</PageTitle>
 
@@ -17,6 +22,12 @@
     <div class="graph-panel">
         <div class="graph-header">
             <h2>Graf</h2>
+            @if (!string.IsNullOrEmpty(autosaveStatus))
+            {
+                <div class="autosave-indicator">
+                    <span class="@autosaveStatusClass">@autosaveStatus</span>
+                </div>
+            }
         </div>        
         <div class="graph-content-wrapper">
             <div class="canvas-controls">
@@ -69,7 +80,8 @@
                 <!-- Unos -->
                 <div class="panel-section">
                     <h3>Unos Grafa</h3>
-                    <p class="section-description">Unesite grane grafa u formatu AB (grana izmedu cvorova A i B)</p>
+                    <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
+                    <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
                     
                     <div class="input-group-inline">
                         <label>
@@ -126,11 +138,13 @@
                 <!-- Info -->
                 <div class="panel-section">
                     <h3>Informacije o Grafu</h3>
-                    <p class="section-description">Pregled cvorova i grana</p>
+                    <p class="section-description">Pregled čvorova i grana</p>
+                    <p class="section-description">Pregled čvorova i grana</p>
                     
                     <div class="info-cards">
                         <div class="info-card info-card-blue">
-                            <div class="info-label">Broj cvorova</div>
+                            <div class="info-label">Broj čvorova</div>
+                            <div class="info-label">Broj čvorova</div>
                             <div class="info-value">@graf.cvorovi.Count</div>
                         </div>
                         <div class="info-card info-card-green">
@@ -154,7 +168,8 @@
                             }
                             else
                             {
-                                <p>Nema cvorova</p>
+                                <p>Nema čvorova</p>
+                                <p>Nema čvorova</p>
                             }
                         </div>
                         <div class="info-item">
@@ -231,10 +246,12 @@
                     @if (odabraniAlgoritam == "dajkstra")
                     {
                         <div class="input-group">
-                            <label>Pocetni cvor</label>
+                            <label>Početni cvor</label>
+                            <label>Početni cvor</label>
                             <div class="custom-select-container">
                                 <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
-                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite pocetni cvor" : $"Cvor {pocetniCvorDajkstra}")</span>
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
                                     <span class="arrow">▼</span>
                                 </div>
                                 @if (dropdownPocetniCvor)
@@ -255,10 +272,12 @@
                     @if (odabraniAlgoritam == "belman-ford")
                     {
                         <div class="input-group">
-                            <label>Pocetni cvor</label>
+                            <label>Početni cvor</label>
+                            <label>Početni cvor</label>
                             <div class="custom-select-container">
                                 <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
-                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite pocetni cvor" : $"Cvor {pocetniCvorDajkstra}")</span>
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
+                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
                                     <span class="arrow">▼</span>
                                 </div>
                                 @if (dropdownPocetniCvor)
@@ -298,7 +317,8 @@
                                 {
                                     <div class="result-error">
                                         <span class="icon">❌</span>
-                                        <span>Graf nije povezan - pronadeno je @grupeCvorova.Count komponenti povezanosti</span>
+                                        <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
+                                        <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
                                     </div>
                                 }
 
@@ -330,7 +350,8 @@
                                 else if (dajkstraRezultati.Any())
                                 {
                                     <h4>Rezultat:</h4>
-                                    <p style="margin-bottom: 10px;">Najkrace udaljenosti od cvora @pocetniCvorDajkstra:</p>
+                                    <p style="margin-bottom: 10px;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
+                                    <p style="margin-bottom: 10px;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
                                     
                                     <div class="dajkstra-results">
                                         @foreach (DajkstraRezultat rezultat in dajkstraRezultati)
@@ -395,13 +416,15 @@
                                 }
                                 else if (belmanFordRezultati.Any())
                                 {
-                                    <p style="margin-bottom: 10px; color: #4b5563;">Najkrace udaljenosti od cvora @pocetniCvorDajkstra:</p>
+                                    <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
+                                    <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
                                     <div class="dajkstra-results">
                                         @foreach (BelmanFordRezultat rezultat in belmanFordRezultati)
                                         {
                                             <div class="dajkstra-result-card">
                                                 <div class="dajkstra-result-header">
-                                                    <span class="dajkstra-target-node">Do cvora @rezultat.cvor:</span>
+                                                    <span class="dajkstra-target-node">Do čvora @rezultat.cvor:</span>
+                                                    <span class="dajkstra-target-node">Do čvora @rezultat.cvor:</span>
                                                     <span class="dajkstra-distance-badge">@(rezultat.udaljenost == double.MaxValue ? "8" : rezultat.udaljenost.ToString())</span>
                                                 </div>
                                                 <div class="dajkstra-path">
@@ -448,7 +471,8 @@
             </div>
             <div class="modal-body">
                 <div class="input-group">
-                    <label>Boja cvorova</label>
+                    <label>Boja čvorova</label>
+                    <label>Boja čvorova</label>
                     <input type="color" @bind="tempBojaCvora" class="color-picker" />
                 </div>
                 <div class="input-group">
@@ -456,7 +480,8 @@
                     <input type="color" @bind="tempBojaGrane" class="color-picker" />
                 </div>
                 <div class="input-group">
-                    <label>Velicina cvorova (@tempVelicinaCvora)</label>
+                    <label>Veličina čvorova (@tempVelicinaCvora)</label>
+                    <label>Veličina čvorova (@tempVelicinaCvora)</label>
                     <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
                 </div>
                 <div class="input-group-inline">
@@ -467,13 +492,15 @@
                 </div>
                 <div class="input-group-inline">
                     <label>
-                        <span>Zakljucaj pomeranje</span>
+                        <span>Zaključaj pomeranje</span>
+                        <span>Zaključaj pomeranje</span>
                         <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
                     </label>
                 </div>
                 <div class="input-group-inline">
                     <label>
-                        <span>Omoguci menjanje grana</span>
+                        <span>Omogući menjanje grana</span>
+                        <span>Omogući menjanje grana</span>
                         <input type="checkbox" @bind="tempOmoguciMenjanjeGrana" class="toggle-switch" />
                     </label>
                 </div>
@@ -484,6 +511,10 @@
         </div>
     </div>
 }
+
+
+
+
 
 @code {
     Graf graf 
@@ -541,6 +572,10 @@
     List<BelmanFordRezultat> belmanFordRezultati = new List<BelmanFordRezultat>();
     bool belmanFordNegativanCiklus = false;
 
+    private Timer? autoSaveTimer;
+    private string autosaveStatus = "";
+    private string autosaveStatusClass = "";
+
     protected override async Task OnInitializedAsync()
     {
         if (graf.cvorovi.Count > 0)
@@ -550,6 +585,16 @@
 
         var dotNetHelper = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("setupKeyboardShortcuts", dotNetHelper);
+        
+        await LoadFromLocalStorage();
+
+        autoSaveTimer = new Timer(async _ => await AutoSave(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+
+        
+        await LoadFromLocalStorage();
+
+        autoSaveTimer = new Timer(async _ => await AutoSave(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1223,5 +1268,68 @@
         dropdown = false;
         dropdownPocetniCvor = false;
         StateHasChanged();
+    }
+
+    // Auto-save
+    async Task AutoSave()
+    {
+        try
+        {
+            autosaveStatus = "Čuvanje...";
+            autosaveStatusClass = "saving";
+            StateHasChanged();
+
+            var podesavanja = new {
+                bojaCvora = GraphState.BojaCvora,
+                bojaGrane = GraphState.BojaGrane,
+                velicinaCvora = GraphState.VelicinaCvora,
+                zakljucanoPomeranje = GraphState.ZakljucanoPomeranje,
+                cuvajPoziciju = GraphState.CuvajPoziciju,
+                omoguciMenjanjeGrana = GraphState.OmoguciMenjanjeGrana
+            };
+
+            await JS.InvokeVoidAsync("saveToLocalStorage", podesavanja, graf);
+
+            autosaveStatus = $"Sačuvano u {DateTime.Now:HH:mm:ss}";
+            autosaveStatusClass = "saved";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            autosaveStatus = "Greška pri čuvanju";
+            autosaveStatusClass = "error";
+            StateHasChanged();
+            Console.WriteLine($"Error during auto-save: {ex.Message}");
+        }
+    }
+
+    async Task LoadFromLocalStorage()
+    {
+        try
+        {
+            var data = await JS.InvokeAsync<JsonElement?>("loadFromLocalStorage");
+
+            if (data.HasValue)
+            {
+                var grafJson = data.Value.GetProperty("graph").GetRawText();
+                var ucitaniGraf = System.Text.Json.JsonSerializer.Deserialize<Graf>(grafJson);
+                
+                if (ucitaniGraf != null)
+                {
+                    graf = ucitaniGraf;
+                    zaRenderovanje = true;
+                }
+            }      
+            
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading from local storage: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        autoSaveTimer?.Dispose();
     }
 }

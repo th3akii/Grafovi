@@ -1,0 +1,105 @@
+{
+  "ID": 0,
+  "naziv": null,
+  "cvorovi": [
+    {
+      "ID": 1,
+      "naziv": "A",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 2,
+      "naziv": "C",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 3,
+      "naziv": "B",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 4,
+      "naziv": "D",
+      "boja": "#97C2FC"
+    }
+  ],
+  "grane": [
+    {
+      "ID": "f100a852f2a745558d83ad63031948ef",
+      "pocetniCvor": {
+        "ID": 1,
+        "naziv": "A",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 2,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "tezina": 2,
+      "usmerena": true
+    },
+    {
+      "ID": "f8e0f228eb784048b1db248085a5f93b",
+      "pocetniCvor": {
+        "ID": 1,
+        "naziv": "A",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 3,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "tezina": 4,
+      "usmerena": true
+    },
+    {
+      "ID": "b053c63815a747dc83538bfad63f9209",
+      "pocetniCvor": {
+        "ID": 2,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 3,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": true
+    },
+    {
+      "ID": "c1c6ba6b63594c9783e9111e10207b46",
+      "pocetniCvor": {
+        "ID": 3,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 4,
+        "naziv": "D",
+        "boja": "#97C2FC"
+      },
+      "tezina": -2,
+      "usmerena": true
+    },
+    {
+      "ID": "b261b52b8c6d4c90b7e851466892792a",
+      "pocetniCvor": {
+        "ID": 4,
+        "naziv": "D",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 2,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "tezina": -1,
+      "usmerena": true
+    }
+  ],
+  "usmeren": true,
+  "tezinski": true
+}

@@ -1,0 +1,115 @@
+{
+  "ID": 0,
+  "naziv": null,
+  "cvorovi": [
+    {
+      "ID": 1,
+      "naziv": "A",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 2,
+      "naziv": "B",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 3,
+      "naziv": "C",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 4,
+      "naziv": "D",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 5,
+      "naziv": "E",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 6,
+      "naziv": "F",
+      "boja": "#97C2FC"
+    }
+  ],
+  "grane": [
+    {
+      "ID": "67cb4048c9224176ba113e72516a37f7",
+      "pocetniCvor": {
+        "ID": 5,
+        "naziv": "E",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 6,
+        "naziv": "F",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": false
+    },
+    {
+      "ID": "6526fd8dfa8e4afea18cd9401858469f",
+      "pocetniCvor": {
+        "ID": 1,
+        "naziv": "A",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 3,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": false
+    },
+    {
+      "ID": "8e3da662ffef48228a47bc431f7a4389",
+      "pocetniCvor": {
+        "ID": 3,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 4,
+        "naziv": "D",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": false
+    },
+    {
+      "ID": "c1279d35020d481d9012635d692531cf",
+      "pocetniCvor": {
+        "ID": 4,
+        "naziv": "D",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 2,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": false
+    },
+    {
+      "ID": "de831b947fe244a88869f6649229773b",
+      "pocetniCvor": {
+        "ID": 3,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 2,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": false
+    }
+  ],
+  "usmeren": false,
+  "tezinski": false
+}

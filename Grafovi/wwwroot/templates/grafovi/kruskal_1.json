@@ -1,0 +1,125 @@
+{
+  "ID": 0,
+  "naziv": null,
+  "cvorovi": [
+    {
+      "ID": 1,
+      "naziv": "A",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 2,
+      "naziv": "B",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 3,
+      "naziv": "C",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 4,
+      "naziv": "D",
+      "boja": "#97C2FC"
+    },
+    {
+      "ID": 5,
+      "naziv": "E",
+      "boja": "#97C2FC"
+    }
+  ],
+  "grane": [
+    {
+      "ID": "042b90a2003d4500aa4a5c82ef2c6187",
+      "pocetniCvor": {
+        "ID": 1,
+        "naziv": "A",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 2,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": false
+    },
+    {
+      "ID": "cec1c56d409c431380bf3b0af2dd01b2",
+      "pocetniCvor": {
+        "ID": 2,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 3,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "tezina": 2,
+      "usmerena": false
+    },
+    {
+      "ID": "7945cb483ada405c8c83d527e0be78c2",
+      "pocetniCvor": {
+        "ID": 1,
+        "naziv": "A",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 4,
+        "naziv": "D",
+        "boja": "#97C2FC"
+      },
+      "tezina": 2,
+      "usmerena": false
+    },
+    {
+      "ID": "ade8d7698caa45f6950b196beeb02724",
+      "pocetniCvor": {
+        "ID": 4,
+        "naziv": "D",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 5,
+        "naziv": "E",
+        "boja": "#97C2FC"
+      },
+      "tezina": 1,
+      "usmerena": false
+    },
+    {
+      "ID": "19652fbf7bbf4a9b89a7177ebd3c18c2",
+      "pocetniCvor": {
+        "ID": 3,
+        "naziv": "C",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 5,
+        "naziv": "E",
+        "boja": "#97C2FC"
+      },
+      "tezina": 3,
+      "usmerena": false
+    },
+    {
+      "ID": "8620571585164dc2a34464a6ed9822db",
+      "pocetniCvor": {
+        "ID": 2,
+        "naziv": "B",
+        "boja": "#97C2FC"
+      },
+      "krajnjiCvor": {
+        "ID": 5,
+        "naziv": "E",
+        "boja": "#97C2FC"
+      },
+      "tezina": 2,
+      "usmerena": false
+    }
+  ],
+  "usmeren": false,
+  "tezinski": true
+}

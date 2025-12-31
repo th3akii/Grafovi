@@ -1,0 +1,37 @@
+[
+  {
+    "naziv": "Dajkstrin algoritam",
+    "slika": "/templates/slike/wip.png",
+    "grafFajl": "/templates/grafovi/dajkstra.json"
+  },
+  {
+    "naziv": "Belman-Ford (Primer 1)",
+    "slika": "/templates/slike/wip.png",
+    "grafFajl": "/templates/grafovi/belman-ford_1.json"
+  },
+  {
+    "naziv": "Belman-Ford (Primer 2)",
+    "slika": "/templates/slike/wip.png",
+    "grafFajl": "/templates/grafovi/belman-ford_2.json"
+  },
+  {
+    "naziv": "Kruskalov algoritam (Primer 1)",
+    "slika": "/templates/slike/wip.png",
+    "grafFajl": "/templates/grafovi/kruskal_1.json"
+  },
+  {
+    "naziv": "Kruskalov algoritam (Primer 2)",
+    "slika": "/templates/slike/wip.png",
+    "grafFajl": "/templates/grafovi/kruskal_2.json"
+  },
+  {
+    "naziv": "Primov algoritam",
+    "slika": "/templates/slike/wip.png",
+    "grafFajl": "/templates/grafovi/prim.json"
+  },
+  {
+    "naziv": "Komponente povezanosti",
+    "slika": "/templates/slike/wip.png",
+    "grafFajl": "/templates/grafovi/komponente_povezanosti.json"
+  }
+]

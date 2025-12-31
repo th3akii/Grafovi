@@ -4,15 +4,14 @@
 @using System.Xml.Serialization
 @using Grafovi.Models.Algoritmi
 @using Grafovi.Models.Komande
-@using System.Threading;
-@using System.Threading;
+@using System.Threading
 @using Grafovi.Services
 @using System.Runtime.InteropServices
-@using System.Text.Json
 @using System.Text.Json
 @inject IJSRuntime JS
 @inject GraphStateService GraphState
 @inject NavigationManager Navigation
+@inject GrafTemplateService TemplateService
 @implements IDisposable
 
 <PageTitle>Grafovi</PageTitle>
@@ -81,7 +80,6 @@
                 <div class="panel-section">
                     <h3>Unos Grafa</h3>
                     <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
-                    <p class="section-description">Unesite grane grafa u formatu AB (grana između čvorova A i B)</p>
                     
                     <div class="input-group-inline">
                         <label>
@@ -130,6 +128,11 @@
                                 <span>⬆</span> Importuj
                             </label>
                         </div>
+                        <div style="margin-top: 8px;">
+                            <button @onclick="ToggleTemplateGallery" class="btn btn-secondary" style="width: 100%;">
+                                <span style="filter: grayscale(100%)">📂</span> Spremljeni grafovi
+                            </button>
+                        </div>
                     </div>
                 </div>
             }
@@ -139,11 +142,9 @@
                 <div class="panel-section">
                     <h3>Informacije o Grafu</h3>
                     <p class="section-description">Pregled čvorova i grana</p>
-                    <p class="section-description">Pregled čvorova i grana</p>
                     
                     <div class="info-cards">
                         <div class="info-card info-card-blue">
-                            <div class="info-label">Broj čvorova</div>
                             <div class="info-label">Broj čvorova</div>
                             <div class="info-value">@graf.cvorovi.Count</div>
                         </div>
@@ -168,7 +169,6 @@
                             }
                             else
                             {
-                                <p>Nema čvorova</p>
                                 <p>Nema čvorova</p>
                             }
                         </div>
@@ -247,10 +247,8 @@
                     {
                         <div class="input-group">
                             <label>Početni cvor</label>
-                            <label>Početni cvor</label>
                             <div class="custom-select-container">
                                 <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
-                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
                                     <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
                                     <span class="arrow">▼</span>
                                 </div>
@@ -273,10 +271,8 @@
                     {
                         <div class="input-group">
                             <label>Početni cvor</label>
-                            <label>Početni cvor</label>
                             <div class="custom-select-container">
                                 <div class="custom-select-trigger" @onclick="ToggleDropdownPocetniCvor">
-                                    <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
                                     <span>@(string.IsNullOrEmpty(pocetniCvorDajkstra) ? "Izaberite početni cvor" : $"Čvor {pocetniCvorDajkstra}")</span>
                                     <span class="arrow">▼</span>
                                 </div>
@@ -318,7 +314,6 @@
                                     <div class="result-error">
                                         <span class="icon">❌</span>
                                         <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
-                                        <span>Graf nije povezan - pronađeno je @grupeCvorova.Count komponenti povezanosti</span>
                                     </div>
                                 }
 
@@ -351,8 +346,6 @@
                                 {
                                     <h4>Rezultat:</h4>
                                     <p style="margin-bottom: 10px;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
-                                    <p style="margin-bottom: 10px;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
-                                    
                                     <div class="dajkstra-results">
                                         @foreach (DajkstraRezultat rezultat in dajkstraRezultati)
                                         {
@@ -417,7 +410,6 @@
                                 else if (belmanFordRezultati.Any())
                                 {
                                     <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
-                                    <p style="margin-bottom: 10px; color: #4b5563;">Najkraće udaljenosti od čvora @pocetniCvorDajkstra:</p>
                                     <div class="dajkstra-results">
                                         @foreach (BelmanFordRezultat rezultat in belmanFordRezultati)
                                         {
@@ -458,8 +450,6 @@
     </div>
 </div>
 
-
-
 <!-- Settings Modal -->
 @if (prikaziPodesavanja)
 {
@@ -472,7 +462,6 @@
             <div class="modal-body">
                 <div class="input-group">
                     <label>Boja čvorova</label>
-                    <label>Boja čvorova</label>
                     <input type="color" @bind="tempBojaCvora" class="color-picker" />
                 </div>
                 <div class="input-group">
@@ -480,7 +469,6 @@
                     <input type="color" @bind="tempBojaGrane" class="color-picker" />
                 </div>
                 <div class="input-group">
-                    <label>Veličina čvorova (@tempVelicinaCvora)</label>
                     <label>Veličina čvorova (@tempVelicinaCvora)</label>
                     <input type="range" @bind="tempVelicinaCvora" min="10" max="50" class="range-slider" />
                 </div>
@@ -493,13 +481,11 @@
                 <div class="input-group-inline">
                     <label>
                         <span>Zaključaj pomeranje</span>
-                        <span>Zaključaj pomeranje</span>
                         <input type="checkbox" @bind="tempZakljucanoPomeranje" class="toggle-switch" />
                     </label>
                 </div>
                 <div class="input-group-inline">
                     <label>
-                        <span>Omogući menjanje grana</span>
                         <span>Omogući menjanje grana</span>
                         <input type="checkbox" @bind="tempOmoguciMenjanjeGrana" class="toggle-switch" />
                     </label>
@@ -512,9 +498,51 @@
     </div>
 }
 
-
-
-
+<!-- Template Gallery Modal -->
+@if (prikaziTemplateGaleriju)
+{
+    <div class="template-modal-backdrop" @onclick="ToggleTemplateGallery">
+        <div class="template-modal-content" @onclick:stopPropagation="true">
+            <div class="template-modal-header">
+                <h3>📚 Galerija Grafova</h3>
+                <button @onclick="ToggleTemplateGallery" class="template-close-btn">×</button>
+            </div>
+            <div class="template-modal-body">
+                @if (templates.Count > 0)
+                {
+                    <div class="templates-grid">
+                        @foreach (var template in templates)
+                        {
+                            <div class="template-card" @onclick="() => UcitajIzabraniTemplate(template)">
+                                <div class="template-image-container">
+                                    @if (string.IsNullOrEmpty(template.slika) || template.slika == "placeholder")
+                                    {
+                                        <div class="template-placeholder-gradient">
+                                            <span>📊</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <img src="@template.slika" alt="@template.naziv" class="template-image" />
+                                    }
+                                </div>
+                                <div class="template-info">
+                                    <h4>@template.naziv</h4>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <p>Učitavanje template-a...</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     Graf graf 
@@ -587,14 +615,11 @@
         await JS.InvokeVoidAsync("setupKeyboardShortcuts", dotNetHelper);
         
         await LoadFromLocalStorage();
-
         autoSaveTimer = new Timer(async _ => await AutoSave(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-
         
-        await LoadFromLocalStorage();
-
-        autoSaveTimer = new Timer(async _ => await AutoSave(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-
+        templates = await TemplateService.GetGrafTemplates();
+        Console.WriteLine($"OnInitializedAsync: Učitano {templates.Count} template-a");
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1317,6 +1342,8 @@
                 if (ucitaniGraf != null)
                 {
                     graf = ucitaniGraf;
+                    usmerenGraf = graf.usmeren;
+                    tezinskiGraf = graf.tezinski;
                     zaRenderovanje = true;
                 }
             }      
@@ -1331,5 +1358,42 @@
     public void Dispose()
     {
         autoSaveTimer?.Dispose();
+    }
+
+    // Templates
+    bool prikaziTemplateGaleriju = false;
+    List<GrafTemplates> templates = new List<GrafTemplates>();
+
+    void ToggleTemplateGallery()
+    {
+        prikaziTemplateGaleriju = !prikaziTemplateGaleriju;
+        Console.WriteLine($"ToggleTemplateGallery: prikaziTemplateGaleriju = {prikaziTemplateGaleriju}, templates count = {templates.Count}");
+        StateHasChanged();
+    }
+
+    async Task UcitajIzabraniTemplate(GrafTemplates template)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(template.grafFajl))
+            {
+                var ucitaniGraf = await TemplateService.UcitajGraf(template.grafFajl);
+                if (ucitaniGraf != null)
+                {
+                    await ObrisiSve();
+                    graf = ucitaniGraf;
+                    usmerenGraf = graf.usmeren;
+                    tezinskiGraf = graf.tezinski;
+                    await JS.InvokeVoidAsync("alert", "Graf iz template-a je uspešno učitan!");
+                    zaRenderovanje = true;
+                    prikaziTemplateGaleriju = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Došlo je do greške prilikom učitavanja template-a: {ex.Message}");
+            return;
+        }
     }
 }
